@@ -73,6 +73,7 @@ static void gn_port_class_init(GNPortClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
 	klass->get_name = gn_port_default_get_name;
+	klass->link_change = (gboolean(*)(GNPort*,GNPort*,GNPort*,GError**))gtk_false;
 	
 	objclass->get_property = gn_port_get_property;
 	objclass->set_property = gn_port_set_property;
@@ -111,8 +112,10 @@ gboolean gn_port_set_link(GNPort* port, GNPort *new_link, GError **error)
 	GNPort        *old_link = priv->link;
 	GNPortPrivate *old_priv = old_link ? gn_port_get_instance_private(old_link) : NULL;
 	GNPortPrivate *new_priv = new_link ? gn_port_get_instance_private(new_link) : NULL;
+	GNPort        *new_link_old = new_priv ? new_priv->link : NULL;
 	GArray        *net_link = gn_node_get_net(priv->node)->links;
 	
+	// Update links
 	priv->link = new_link;
 	if (old_link && !new_link) {
 		// Link deleted
@@ -137,8 +140,12 @@ gboolean gn_port_set_link(GNPort* port, GNPort *new_link, GError **error)
 		new_priv->link = port;
 	}
 	
-	/* TODO gboolean result = */GN_PORT_GET_CLASS(port)->link_change ? !GN_PORT_GET_CLASS(port)->link_change(port,old_link,new_link,error) : TRUE;
-	// Fire events
+	// Trigger "link_change"
+	gboolean result = TRUE;
+	if (old_link) result &= GN_PORT_GET_CLASS(old_link)->link_change(old_link,port,NULL,error);
+	result &= GN_PORT_GET_CLASS(port)->link_change(port,old_link,new_link,error);
+	if (new_link) result &= GN_PORT_GET_CLASS(new_link)->link_change(new_link,new_link_old,port,error);
+	// Fire property changes
 	if (old_link) g_object_notify_by_pspec(G_OBJECT(old_link),obj_properties[PROP_LINK]);
 	g_object_notify_by_pspec(G_OBJECT(port),obj_properties[PROP_LINK]);
 	if (new_link) g_object_notify_by_pspec(G_OBJECT(new_link),obj_properties[PROP_LINK]);

@@ -14,6 +14,4 @@ To use it create your VMs in the virt-manager (or any libvirt client), remove ne
 
 **I lost my crossed cables** So VM to switch, no VM to VM, nor switch to switch for now.
 
-**I'm shameful 😭️** To have it works, link from the VM to the switch, not the reverse ! (Need to brain that more)
-
 **This link won't break** Restart the software to delete links
