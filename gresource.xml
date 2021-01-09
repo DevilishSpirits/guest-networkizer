@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+	<gresource prefix="/me/d_spirits/guest_networkizer">
+		<!-- GtkBuilder UI files -->
+		<file preprocess="xml-stripblanks">ui/GNMainWindow</file>
+		<!-- Images -->
+	</gresource>
+</gresources>
