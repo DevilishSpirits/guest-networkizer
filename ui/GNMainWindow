@@ -209,6 +209,20 @@ They will automatically appear here but not their network interface, use this ap
                     <property name="position">2</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkToggleButton" id="add_nat_button">
+                    <property name="label" translatable="yes">NAT</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <signal name="toggled" handler="gn_main_window_add_nat" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>

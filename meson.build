@@ -15,6 +15,7 @@ srcs = [
 	'src/gn-node.c',
 	'src/gn-ports.c',
 	'src/main.c',
+	'src/vde-slirp.c',
 	'src/vde-switch.c',
 	'src/vir-domain-list.c',
 	'src/vir-node.c',

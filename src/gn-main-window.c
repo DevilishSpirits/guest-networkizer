@@ -1,4 +1,5 @@
 #include "gn-main-window.h"
+#include "vde-slirp.h"
 #include "vde-switch.h"
 #include "vir-node.h"
 #include <math.h>
@@ -81,6 +82,7 @@ static void gn_main_window_reset_new_object(GNMainWindow *self)
 	
 	gtk_toggle_button_set_active(self->add_vm_button,FALSE);
 	gtk_toggle_button_set_active(self->add_switch_button,FALSE);
+	gtk_toggle_button_set_active(self->add_nat_button,FALSE);
 }
 
 G_MODULE_EXPORT void gn_main_window_virt_listbox_row_activated(GtkListBox *box, GtkListBoxRow *row, GNMainWindow *self)
@@ -88,6 +90,7 @@ G_MODULE_EXPORT void gn_main_window_virt_listbox_row_activated(GtkListBox *box, 
 	gn_main_window_reset_new_object(self);
 	gtk_toggle_button_set_active(self->add_switch_button,FALSE);
 	gtk_toggle_button_set_active(self->add_link_button,FALSE);
+	gtk_toggle_button_set_active(self->add_nat_button,FALSE);
 	static const char* domain_property = "domain";
 	g_ptr_array_set_size(self->new_node_properties_names,2);
 	self->new_node_properties_names->pdata[1] = domain_property;
@@ -106,14 +109,25 @@ G_MODULE_EXPORT void gn_main_window_add_switch(GtkToggleButton *toggle_button, G
 	if (gtk_toggle_button_get_active(toggle_button)) {
 		gtk_toggle_button_set_active(self->add_vm_button,FALSE);
 		gtk_toggle_button_set_active(self->add_link_button,FALSE);
+		gtk_toggle_button_set_active(self->add_nat_button,FALSE);
 		g_array_set_size(self->new_node_properties_values,1);
 		self->new_node_type = GN_TYPE_VDE_SWITCH;
+	} else gn_main_window_reset_new_object(self);
+}
+G_MODULE_EXPORT void gn_main_window_add_nat(GtkToggleButton *toggle_button, GNMainWindow *self)
+{
+	if (gtk_toggle_button_get_active(toggle_button)) {
+		gtk_toggle_button_set_active(self->add_vm_button,FALSE);
+		gtk_toggle_button_set_active(self->add_link_button,FALSE);
+		g_array_set_size(self->new_node_properties_values,1);
+		self->new_node_type = GN_TYPE_VDE_SLIRP;
 	} else gn_main_window_reset_new_object(self);
 }
 G_MODULE_EXPORT void gn_main_window_add_link(GtkToggleButton *toggle_button, GNMainWindow *self)
 {
 	gtk_toggle_button_set_active(self->add_vm_button,FALSE);
 	gtk_toggle_button_set_active(self->add_switch_button,FALSE);
+	gtk_toggle_button_set_active(self->add_nat_button,FALSE);
 }
 
 G_MODULE_EXPORT gboolean gn_main_window_button_press(GtkWidget *widget, GdkEventButton *event, GNMainWindow *self)
@@ -234,6 +248,7 @@ static void gn_main_window_class_init(GNMainWindowClass *klass)
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_vm_button);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_switch_button);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_button);
+	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_nat_button);
 	
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_dialog);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_logo_a_drawarea);

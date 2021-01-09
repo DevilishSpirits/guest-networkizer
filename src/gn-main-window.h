@@ -43,6 +43,7 @@ struct _GNMainWindow
 	GtkToggleButton* add_vm_button;
 	GtkToggleButton* add_switch_button;
 	GtkToggleButton* add_link_button;
+	GtkToggleButton* add_nat_button;
 	
 	GtkDialog *add_link_dialog;
 	GtkDrawingArea *add_link_logo_a_drawarea;
