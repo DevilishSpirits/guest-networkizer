@@ -110,6 +110,8 @@ gboolean gn_port_set_link(GNPort* port, GNPort *new_link, GError **error)
 {
 	GNPortPrivate *priv     = gn_port_get_instance_private(port);
 	GNPort        *old_link = priv->link;
+	if (priv->link == new_link)
+		return TRUE;
 	GNPortPrivate *old_priv = old_link ? gn_port_get_instance_private(old_link) : NULL;
 	GNPortPrivate *new_priv = new_link ? gn_port_get_instance_private(new_link) : NULL;
 	GNPort        *new_link_old = new_priv ? new_priv->link : NULL;
