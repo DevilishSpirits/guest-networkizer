@@ -76,21 +76,13 @@ static void gn_main_window_add_link_dialog_run(GNMainWindow *self, GNNode* node_
 
 static void gn_main_window_reset_new_object(GNMainWindow *self)
 {
-	// Reset
 	self->new_node_type = G_TYPE_INVALID;
 	g_array_set_size(self->new_node_properties_values,1);
-	
-	gtk_toggle_button_set_active(self->add_vm_button,FALSE);
-	gtk_toggle_button_set_active(self->add_switch_button,FALSE);
-	gtk_toggle_button_set_active(self->add_nat_button,FALSE);
 }
 
 G_MODULE_EXPORT void gn_main_window_virt_listbox_row_activated(GtkListBox *box, GtkListBoxRow *row, GNMainWindow *self)
 {
 	gn_main_window_reset_new_object(self);
-	gtk_toggle_button_set_active(self->add_switch_button,FALSE);
-	gtk_toggle_button_set_active(self->add_link_button,FALSE);
-	gtk_toggle_button_set_active(self->add_nat_button,FALSE);
 	static const char* domain_property = "domain";
 	g_ptr_array_set_size(self->new_node_properties_names,2);
 	self->new_node_properties_names->pdata[1] = domain_property;
@@ -101,33 +93,44 @@ G_MODULE_EXPORT void gn_main_window_virt_listbox_row_activated(GtkListBox *box, 
 	
 	self->new_node_type = GN_TYPE_VIR_NODE;
 	self->new_node_once = TRUE;
-	gtk_toggle_button_set_active(self->add_vm_button,TRUE);
-	// FIXME There's a small glitch
+	gtk_popover_popdown(self->add_vm_popover);
+}
+G_MODULE_EXPORT void gn_main_window_add_vm(GtkToggleButton *toggle_button, GNMainWindow *self)
+{
+	if (gtk_toggle_button_get_active(toggle_button))
+		gtk_popover_popup(self->add_vm_popover);
 }
 G_MODULE_EXPORT void gn_main_window_add_switch(GtkToggleButton *toggle_button, GNMainWindow *self)
 {
 	if (gtk_toggle_button_get_active(toggle_button)) {
-		gtk_toggle_button_set_active(self->add_vm_button,FALSE);
-		gtk_toggle_button_set_active(self->add_link_button,FALSE);
-		gtk_toggle_button_set_active(self->add_nat_button,FALSE);
 		g_array_set_size(self->new_node_properties_values,1);
 		self->new_node_type = GN_TYPE_VDE_SWITCH;
-	} else gn_main_window_reset_new_object(self);
+	} else if (self->new_node_type == GN_TYPE_VDE_SWITCH)
+		gn_main_window_reset_new_object(self);
 }
 G_MODULE_EXPORT void gn_main_window_add_nat(GtkToggleButton *toggle_button, GNMainWindow *self)
 {
 	if (gtk_toggle_button_get_active(toggle_button)) {
-		gtk_toggle_button_set_active(self->add_vm_button,FALSE);
-		gtk_toggle_button_set_active(self->add_link_button,FALSE);
 		g_array_set_size(self->new_node_properties_values,1);
 		self->new_node_type = GN_TYPE_VDE_SLIRP;
-	} else gn_main_window_reset_new_object(self);
+	} else if (self->new_node_type == GN_TYPE_VDE_SLIRP)
+		gn_main_window_reset_new_object(self);
 }
-G_MODULE_EXPORT void gn_main_window_add_link(GtkToggleButton *toggle_button, GNMainWindow *self)
+
+G_MODULE_EXPORT void gn_main_window_move_mode(GtkToggleButton *toggle_button, GNMainWindow *self)
 {
-	gtk_toggle_button_set_active(self->add_vm_button,FALSE);
-	gtk_toggle_button_set_active(self->add_switch_button,FALSE);
-	gtk_toggle_button_set_active(self->add_nat_button,FALSE);
+	gn_main_window_reset_new_object(self);
+	self->new_node_type = GN_WINDOW_MODE_MOVE;
+}
+G_MODULE_EXPORT void gn_main_window_link_mode(GtkToggleButton *toggle_button, GNMainWindow *self)
+{
+	gn_main_window_reset_new_object(self);
+	self->new_node_type = GN_WINDOW_MODE_LINK;
+}
+G_MODULE_EXPORT void gn_main_window_delete_mode(GtkToggleButton *toggle_button, GNMainWindow *self)
+{
+	gn_main_window_reset_new_object(self);
+	self->new_node_type = GN_WINDOW_MODE_DELETE;
 }
 
 G_MODULE_EXPORT gboolean gn_main_window_button_press(GtkWidget *widget, GdkEventButton *event, GNMainWindow *self)
@@ -151,38 +154,54 @@ G_MODULE_EXPORT gboolean gn_main_window_mouse_motion(GtkWidget *widget, GdkEvent
 	const double view_scale = gn_main_window_view_scale(self);
 	const double workspace_x = WORKSPACE_MOUSE(x);
 	const double workspace_y = WORKSPACE_MOUSE(y);
+	
+	char* cursor_name = NULL;
+	const char* cursor_link = "alias";
+	const char* cursor_grabbing = "grabbing";
+	const char* cursor_no_drop = "no-drop";
+	
+	
 	GNNetObject target_object;
 	GNNetObjectType target_object_type = gn_net_whats_here(self->net,&target_object,workspace_x,workspace_y);
 	GdkWindow *widget_window = gtk_widget_get_window(widget);
 	GdkDisplay *widget_display = gdk_window_get_display(widget_window);
+	gboolean target_is_source = self->grab_object.node == target_object.node;
 	
-	switch (self->grab_object_type) {
+	if (self->new_node_type == GN_WINDOW_MODE_DELETE) {
+		if (self->grab_object_type) {
+			cursor_name = target_is_source ? cursor_grabbing : cursor_no_drop;
+		}
+	} else switch (self->grab_object_type) {
 		case GN_NET_NODE: {
-			if (gtk_toggle_button_get_active(self->add_link_button)) {
-				// Set cursor according to the destination
-				gboolean no_link = (target_object_type != GN_NET_NODE) || (self->grab_object.node == target_object.node);
-				const char *cursor_name = no_link ? "no-drop" : "alias";
-				GdkCursor *cursor = gdk_cursor_new_from_name(widget_display,cursor_name);
-				gdk_window_set_cursor(widget_window,cursor);
-				g_object_unref(cursor);
-			} else {
-				// Set cursor according to the destination
-				gboolean no_drop = target_object_type && (self->grab_object.node != target_object.node);
-				const char *cursor_name = no_drop ? "no-drop" : "grabbing";
-				GdkCursor *cursor = gdk_cursor_new_from_name(widget_display,cursor_name);
-				gdk_window_set_cursor(widget_window,cursor);
-				g_object_unref(cursor);
-				// Move the object
-				if (!no_drop) {
-					GdkPoint *position = gn_node_position(self->grab_object.node);
-					if ((position->x != workspace_x)||(position->y != workspace_y)) {
-						position->x = round(workspace_x);
-						position->y = round(workspace_y);
-						gtk_widget_queue_draw(widget);
+			switch (self->new_node_type) {
+				case GN_WINDOW_MODE_LINK: {
+					// Say weather this will drop a new link
+					// TODO Link to myself
+					gboolean no_link = (target_object_type != GN_NET_NODE) || target_is_source;
+					cursor_name = no_link ? cursor_no_drop : cursor_link;
+				} break;
+				default: {
+					// Put a no drop cursor if dropping is not possible
+					gboolean no_drop = target_object_type && !target_is_source;
+					cursor_name = no_drop ? cursor_no_drop : cursor_grabbing;
+					// Move the object if possible
+					if (!no_drop) {
+						GdkPoint *position = gn_node_position(self->grab_object.node);
+						if ((position->x != workspace_x)||(position->y != workspace_y)) {
+							position->x = round(workspace_x);
+							position->y = round(workspace_y);
+							gtk_widget_queue_draw(widget);
+						}
 					}
-				}
+				} break;
 			}
 		} break;
+	}
+	
+	if (cursor_name) {
+		GdkCursor *cursor = gdk_cursor_new_from_name(widget_display,cursor_name);
+		gdk_window_set_cursor(widget_window,cursor);
+		g_object_unref(cursor);
 	}
 	return TRUE;
 }
@@ -195,20 +214,35 @@ G_MODULE_EXPORT gboolean gn_main_window_button_release(GtkWidget *widget, GdkEve
 	GNNetObjectType target_object_type = gn_net_whats_here(self->net,&target_object,workspace_x,workspace_y);
 	GdkWindow *widget_window = gtk_widget_get_window(widget);
 	// Check for insertion
-	if (!self->grab_object_type && !target_object_type && self->new_node_type) {
-		// Create node
-		GNNode *new_node = GN_NODE(g_object_new_with_properties(self->new_node_type,self->new_node_properties_values->len,(const char**)self->new_node_properties_names->pdata,(GValue*)self->new_node_properties_values->data));
-		GdkPoint *position = gn_node_position(new_node);
-		position->x = round(workspace_x);
-		position->y = round(workspace_y);
-		g_ptr_array_add(self->net->nodes,new_node);
-		if (self->new_node_once)
-			gn_main_window_reset_new_object(self);
+	switch (self->new_node_type) {
+		case GN_WINDOW_MODE_LINK: {
+			if ((self->grab_object_type == GN_NET_NODE) && (target_object_type == GN_NET_NODE))
+				gn_main_window_add_link_dialog_run(self,self->grab_object.node,target_object.node);
+		} break;
+		case GN_WINDOW_MODE_DELETE: {
+			if (self->grab_object.node == target_object.node)
+				switch (target_object_type) {
+					case GN_NET_NODE: {
+						g_ptr_array_remove_fast(self->net->nodes,target_object.node);
+					} break;
+					case GN_NET_LINK: {
+						gn_port_set_link(target_object.link->port_a,NULL,NULL);
+					} break;
+				}
+		} break;
+		default: {
+			if (!self->grab_object_type && !target_object_type) {
+			// Create node
+			GNNode *new_node = GN_NODE(g_object_new_with_properties(self->new_node_type,self->new_node_properties_values->len,(const char**)self->new_node_properties_names->pdata,(GValue*)self->new_node_properties_values->data));
+			GdkPoint *position = gn_node_position(new_node);
+			position->x = round(workspace_x);
+			position->y = round(workspace_y);
+			g_ptr_array_add(self->net->nodes,new_node);
+			if (self->new_node_once)
+				gn_main_window_reset_new_object(self);
+			}
+		} break;
 	}
-	// Check for link
-	if (gtk_toggle_button_get_active(self->add_link_button) && (self->grab_object_type == GN_NET_NODE) && (target_object_type == GN_NET_NODE))
-		gn_main_window_add_link_dialog_run(self,self->grab_object.node,target_object.node);
-	
 	// Resets
 	self->grab_object_type = GN_NET_NONE;
 	gdk_window_set_cursor(widget_window,NULL);
@@ -246,6 +280,7 @@ static void gn_main_window_class_init(GNMainWindowClass *klass)
 	gtk_widget_class_set_template_from_resource(widget_class,"/me/d_spirits/guest_networkizer/ui/GNMainWindow");
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,virt_listbox);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_vm_button);
+	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_vm_popover);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_switch_button);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_button);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_nat_button);
