@@ -215,6 +215,7 @@ G_MODULE_EXPORT gboolean gn_main_window_button_release(GtkWidget *widget, GdkEve
 	GdkWindow *widget_window = gtk_widget_get_window(widget);
 	// Check for insertion
 	switch (self->new_node_type) {
+		case GN_WINDOW_MODE_MOVE: break;
 		case GN_WINDOW_MODE_LINK: {
 			if ((self->grab_object_type == GN_NET_NODE) && (target_object_type == GN_NET_NODE))
 				gn_main_window_add_link_dialog_run(self,self->grab_object.node,target_object.node);
@@ -276,7 +277,6 @@ static void gn_main_window_class_init(GNMainWindowClass *klass)
 	GtkWidgetClass* widget_class = GTK_WIDGET_CLASS(klass);
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
-	GError *error = NULL;
 	gtk_widget_class_set_template_from_resource(widget_class,"/me/d_spirits/guest_networkizer/ui/GNMainWindow");
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,virt_listbox);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_vm_button);
