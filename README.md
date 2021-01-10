@@ -10,8 +10,6 @@ To use it create your VMs in the virt-manager (or any libvirt client), remove ne
 
 **Note!** I use `virDomainQemuMonitorCommand` to perform some black magic that may crash libvirt (especially a future VDE enabled libvirt...).
 
-**It's really bad!!!** To have it works, starts VM __before__ adding them in the app and never stop them (I'm rushing to have a at least a usable demo so I didn't made hotplug right now, but it's a must have !).
-
 **I lost my crossed cables** So VM to switch, no VM to VM, nor switch to switch for now.
 
 **This link won't break** Restart the software to delete links

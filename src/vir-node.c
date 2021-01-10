@@ -44,7 +44,7 @@ static gboolean gn_vir_node_perform_qemu(GNVirNodePort *self, const char* cmd, c
 	return TRUE;
 }
 
-static gboolean gn_vir_node_qemu_set_carrier(GNVirNodePort *self, gboolean active, GError** error)
+static gboolean gn_vir_node_port_qemu_set_carrier(GNVirNodePort *self, gboolean active, GError** error)
 {
 	static const char* link_level[2] = {"off","on"};
 	active = active != FALSE; // Avoid buffer overflow
@@ -54,7 +54,7 @@ static gboolean gn_vir_node_qemu_set_carrier(GNVirNodePort *self, gboolean activ
 	g_free(cmd);
 	return result;
 }
-static gboolean gn_vir_node_qemu_init(GNVirNodePort *self, GError** error)
+static gboolean gn_vir_node_port_qemu_init(GNVirNodePort *self, GError** error)
 {
 	char* cmd;
 	gboolean result;
@@ -71,7 +71,13 @@ static gboolean gn_vir_node_qemu_init(GNVirNodePort *self, GError** error)
 	if (!result)
 		return FALSE;
 	// Remove carrier - TODO Do that in a atomic way
-	return gn_vir_node_qemu_set_carrier(self,FALSE,error);
+	return gn_vir_node_port_qemu_set_carrier(self,FALSE,error);
+}
+
+static void gn_vir_node_port_qemu_started(GVirDomain *gvirdomain, GNVirNodePort *self)
+{
+	g_warning("VM start");
+	gn_vir_node_port_qemu_init(self,/* TODO GError** error */NULL);
 }
 
 static gboolean gn_vir_node_port_connect_vde2(GNPlug* port, const char* socket_path, int port_no, GError **error)
@@ -83,7 +89,7 @@ static gboolean gn_vir_node_port_connect_vde2(GNPlug* port, const char* socket_p
 	if (!self->plug)
 		return FALSE;
 	// Add carrier
-	return gn_vir_node_qemu_set_carrier(self,TRUE,error);
+	return gn_vir_node_port_qemu_set_carrier(self,TRUE,error);
 }
 static void gn_vir_node_port_disconnect(GNPlug *port)
 {
@@ -92,7 +98,7 @@ static void gn_vir_node_port_disconnect(GNPlug *port)
 	g_subprocess_force_exit(self->hub);
 	g_clear_object(&self->hub);
 	// Remove carrier
-	gn_vir_node_qemu_set_carrier(self,FALSE,NULL);
+	gn_vir_node_port_qemu_set_carrier(self,FALSE,NULL);
 }
 
 // Called when VM start or port is added while VM is running
@@ -190,7 +196,8 @@ static void gn_vir_node_constructed(GObject *gobject)
 {
 	GNVirNode *self = GN_VIR_NODE(gobject);
 	GNVirNodePort *port = g_object_new(gn_vir_node_port_get_type(),"node",self,NULL);
-	gn_vir_node_qemu_init(port,NULL);
+	g_signal_connect_object(self->domain,"started",G_CALLBACK(gn_vir_node_port_qemu_started),port,0);
+	gn_vir_node_port_qemu_init(port,NULL);
 	g_list_store_append(self->ports,port);
 	G_OBJECT_CLASS(gn_vir_node_parent_class)->constructed(gobject);
 }
