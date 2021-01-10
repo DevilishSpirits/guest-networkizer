@@ -188,6 +188,13 @@ static void gn_vir_node_init(GNVirNode *self)
 {
 	self->ports = g_list_store_new(GN_TYPE_PLUG);
 }
+static gboolean gn_vir_node_query_tooltip(GNNode* node, int x, int y, gboolean keyboard_mode, GtkTooltip *tooltip, GtkWidget *widget)
+{
+	GNVirNode *self = GN_VIR_NODE(node);
+	// TODO Show more datas
+	gtk_tooltip_set_text(tooltip,gvir_domain_get_name(self->domain));
+	return TRUE;
+}
 static GListModel *gn_vir_node_query_portlist_model(GNNode* node)
 {
 	return GN_VIR_NODE(node)->ports;
@@ -223,6 +230,7 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
 	node_class->query_portlist_model = gn_vir_node_query_portlist_model;
+	node_class->query_tooltip = gn_vir_node_query_tooltip;
 	
 	objclass->constructed = gn_vir_node_constructed;
 	objclass->get_property = gn_vir_node_get_property;
