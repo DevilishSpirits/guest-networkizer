@@ -269,7 +269,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button2">
+              <object class="GtkButton" id="add_link_ok_button">
                 <property name="label" translatable="yes">_Link</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
@@ -296,6 +296,8 @@
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="margin-start">4</property>
+            <property name="margin-end">4</property>
             <property name="spacing">4</property>
             <child>
               <object class="GtkDrawingArea" id="add_link_logo_a_drawarea">
@@ -303,6 +305,7 @@
                 <property name="height-request">64</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="has-tooltip">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
               </object>
@@ -316,6 +319,7 @@
               <object class="GtkListBox" id="add_link_ports_a_listbox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <signal name="selected-rows-changed" handler="gn_main_window_add_link_dialog_selection_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -339,6 +343,7 @@
               <object class="GtkListBox" id="add_link_ports_b_listbox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <signal name="selected-rows-changed" handler="gn_main_window_add_link_dialog_selection_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -352,6 +357,7 @@
                 <property name="height-request">64</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="has-tooltip">True</property>
                 <property name="halign">end</property>
                 <property name="valign">center</property>
               </object>
@@ -372,8 +378,14 @@
     </child>
     <action-widgets>
       <action-widget response="-6">button1</action-widget>
-      <action-widget response="-5">button2</action-widget>
+      <action-widget response="-5">add_link_ok_button</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkSizeGroup">
+    <widgets>
+      <widget name="add_link_ports_a_listbox"/>
+      <widget name="add_link_ports_b_listbox"/>
+    </widgets>
   </object>
   <object class="GtkPopover" id="add_vm_popover">
     <property name="width-request">250</property>

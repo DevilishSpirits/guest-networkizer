@@ -56,10 +56,13 @@ struct _GNMainWindow
 	GtkToggleButton* add_nat_button;
 	
 	GtkDialog *add_link_dialog;
+	GtkWidget *add_link_ok_button;
 	GtkDrawingArea *add_link_logo_a_drawarea;
 	GtkDrawingArea *add_link_logo_b_drawarea;
 	GtkListBox    *add_link_ports_a_listbox;
 	GtkListBox    *add_link_ports_b_listbox;
 };
+
+void gn_main_window_add_link_dialog_run(GNMainWindow *self, GNNode* node_a, GNNode* node_b);
 
 G_END_DECLS

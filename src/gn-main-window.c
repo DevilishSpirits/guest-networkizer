@@ -29,51 +29,6 @@ static double gn_main_window_view_scale(GNMainWindow *self)
 	return exp(self->view_z) * gdk_screen_get_resolution(gtk_widget_get_screen(GTK_WIDGET(self)));
 }
 
-static gboolean gn_main_window_add_link_dialog_draw_logo(GtkWidget *widget, cairo_t *cr, GNNode *node)
-{
-	GtkAllocation allocation;
-	gtk_widget_get_allocated_size(widget,&allocation,NULL);
-	double scale = allocation.width < allocation.height ? allocation.width : allocation.height;
-	cairo_scale(cr,scale,scale);
-	GN_NODE_GET_CLASS(node)->render(node,cr);
-	return TRUE;
-}
-static GtkWidget *gn_main_window_add_link_bind_list_box_create_widget(gpointer item, gpointer user_data)
-{
-	GNPort *port = GN_PORT(item);
-	GNPortClass *port_class = GN_PORT_GET_CLASS(port);
-	GtkWidget *row = gtk_list_box_row_new();
-	gtk_container_add(GTK_CONTAINER(row),gtk_label_new(port_class->get_name(port)));
-	g_object_set_data(G_OBJECT(row),"port",port);
-	gtk_widget_show_all(row);
-	return row;
-}
-static void gn_main_window_add_link_dialog_run(GNMainWindow *self, GNNode* node_a, GNNode* node_b)
-{
-	GNNodeClass *node_a_class = GN_NODE_GET_CLASS(node_a);
-	GNNodeClass *node_b_class = GN_NODE_GET_CLASS(node_b);
-	// Configure the dialog
-	gulong sig_draw_a = g_signal_connect(self->add_link_logo_a_drawarea,"draw",G_CALLBACK(gn_main_window_add_link_dialog_draw_logo),node_a);
-	gulong sig_draw_b = g_signal_connect(self->add_link_logo_b_drawarea,"draw",G_CALLBACK(gn_main_window_add_link_dialog_draw_logo),node_b);
-	
-	gtk_list_box_bind_model(self->add_link_ports_a_listbox,node_a_class->query_portlist_model(node_a),gn_main_window_add_link_bind_list_box_create_widget,NULL,NULL);
-	gtk_list_box_bind_model(self->add_link_ports_b_listbox,node_b_class->query_portlist_model(node_b),gn_main_window_add_link_bind_list_box_create_widget,NULL,NULL);
-	
-	// Run the dialog
-	if (gtk_dialog_run(self->add_link_dialog) == GTK_RESPONSE_OK) {
-		GNPort *port_a = GN_PORT(g_object_get_data(G_OBJECT(gtk_list_box_get_selected_row(self->add_link_ports_a_listbox)),"port"));
-		GNPort *port_b = GN_PORT(g_object_get_data(G_OBJECT(gtk_list_box_get_selected_row(self->add_link_ports_b_listbox)),"port"));
-		gn_port_set_link(port_a,port_b,NULL);
-	}
-	gtk_widget_hide(GTK_WIDGET(self->add_link_dialog));
-	
-	// Unbind the dialog
-	gtk_list_box_bind_model(self->add_link_ports_a_listbox,NULL,gn_main_window_add_link_bind_list_box_create_widget,NULL,NULL);
-	gtk_list_box_bind_model(self->add_link_ports_b_listbox,NULL,gn_main_window_add_link_bind_list_box_create_widget,NULL,NULL);
-	g_signal_handler_disconnect(self->add_link_logo_a_drawarea,sig_draw_a);
-	g_signal_handler_disconnect(self->add_link_logo_b_drawarea,sig_draw_b);
-}
-
 static void gn_main_window_reset_new_object(GNMainWindow *self)
 {
 	self->new_node_type = G_TYPE_INVALID;
@@ -286,6 +241,7 @@ static void gn_main_window_class_init(GNMainWindowClass *klass)
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_nat_button);
 	
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_dialog);
+	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_ok_button);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_logo_a_drawarea);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_logo_b_drawarea);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_ports_a_listbox);
