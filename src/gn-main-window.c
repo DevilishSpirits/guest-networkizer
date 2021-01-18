@@ -23,10 +23,14 @@ static void gn_main_window_init(GNMainWindow *self)
 	g_array_set_size(self->new_node_properties_values,1);
 	g_value_set_object(g_value_init((GValue*)self->new_node_properties_values->data,GN_TYPE_NET),self->net);
 }
+static double gn_main_window_get_screen_resolution(GNMainWindow *self)
+{
+	return gdk_screen_get_resolution(gtk_widget_get_screen(GTK_WIDGET(self)));
+}
 static double gn_main_window_view_scale(GNMainWindow *self)
 {
 	// Scaling depend of the font-size, big font for big nodes
-	return exp(self->view_z) * gdk_screen_get_resolution(gtk_widget_get_screen(GTK_WIDGET(self)));
+	return exp(self->view_z) * gn_main_window_get_screen_resolution(self);
 }
 
 static void gn_main_window_reset_new_object(GNMainWindow *self)
@@ -95,6 +99,9 @@ G_MODULE_EXPORT gboolean gn_main_window_button_press(GtkWidget *widget, GdkEvent
 	const double workspace_y = WORKSPACE_MOUSE(y);
 	GdkWindow *widget_window = gtk_widget_get_window(widget);
 	GdkDisplay *widget_display = gdk_window_get_display(widget_window);
+	
+	self->button_press_mouse_location.x = event->x;
+	self->button_press_mouse_location.y = event->y;
 	
 	self->grab_object_type = gn_net_whats_here(self->net,&self->grab_object,workspace_x,workspace_y);
 	if (self->grab_object_type) {
@@ -168,6 +175,19 @@ G_MODULE_EXPORT gboolean gn_main_window_button_release(GtkWidget *widget, GdkEve
 	GNNetObject target_object;
 	GNNetObjectType target_object_type = gn_net_whats_here(self->net,&target_object,workspace_x,workspace_y);
 	GdkWindow *widget_window = gtk_widget_get_window(widget);
+	
+	const int is_click_max_delta = gn_main_window_get_screen_resolution(self)/10 + 1;
+	gboolean is_click = (abs(self->button_press_mouse_location.x - event->x) <= is_click_max_delta) && (abs(self->button_press_mouse_location.y - event->y) <= is_click_max_delta);
+	// Check for context menu
+	if ((event->button == 3) && (self->grab_object_type == GN_NET_NODE) && is_click) {
+		GdkRectangle rect = {
+			(round(workspace_x)-.5)*view_scale + self->view_x,
+			(round(workspace_y)-.5)*view_scale + self->view_y,
+			view_scale,view_scale
+		};
+		gtk_popover_set_pointing_to(self->context_node_popover,&rect);
+		gtk_popover_popup(self->context_node_popover);
+	} else
 	// Check for insertion
 	switch (self->new_node_type) {
 		case GN_WINDOW_MODE_MOVE: break;
@@ -246,6 +266,8 @@ static void gn_main_window_class_init(GNMainWindowClass *klass)
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_logo_b_drawarea);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_ports_a_listbox);
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_ports_b_listbox);
+	
+	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,context_node_popover);
 	
 	objclass->dispose = gn_main_window_dispose;
 	objclass->finalize = gn_main_window_finalize;

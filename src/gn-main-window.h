@@ -24,6 +24,8 @@ struct _GNMainWindow
 	GNNetObjectType grab_object_type;
 	GNNetObject grab_object;
 	
+	GdkPoint button_press_mouse_location;
+	
 	/*  The object to insert on click
 	 *
 	 * When no object is set :
@@ -61,6 +63,8 @@ struct _GNMainWindow
 	GtkDrawingArea *add_link_logo_b_drawarea;
 	GtkListBox    *add_link_ports_a_listbox;
 	GtkListBox    *add_link_ports_b_listbox;
+	
+	GtkPopover     *context_node_popover;
 };
 
 void gn_main_window_add_link_dialog_run(GNMainWindow *self, GNNode* node_a, GNNode* node_b);
