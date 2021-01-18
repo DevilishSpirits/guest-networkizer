@@ -261,15 +261,14 @@ static void gn_vir_node_constructed(GObject *gobject)
 static void gn_vir_node_dispose(GObject *gobject)
 {
 	GNVirNode *self = GN_VIR_NODE(gobject);
-	g_clear_object(&self->ports);
+	g_list_store_remove_all(self->ports);
 	G_OBJECT_CLASS(gn_vir_node_parent_class)->dispose(gobject);
 }
 
 static void gn_vir_node_finalize(GObject *gobject)
 {
 	GNVirNode *self = GN_VIR_NODE(gobject);
-	GNPlug *plug = GN_PLUG(gobject);
-	gn_vir_node_port_disconnect(plug);
+	g_clear_object(&self->ports);
 	G_OBJECT_CLASS(gn_vir_node_parent_class)->finalize(gobject);
 }
 
