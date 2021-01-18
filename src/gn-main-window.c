@@ -86,6 +86,48 @@ G_MODULE_EXPORT void gn_main_window_link_mode(GtkToggleButton *toggle_button, GN
 	gn_main_window_reset_new_object(self);
 	self->new_node_type = GN_WINDOW_MODE_LINK;
 }
+
+G_MODULE_EXPORT gboolean gn_main_window_onoff_switch_state_set(GtkToggleButton *toggle_button, gboolean state, GNMainWindow *self)
+{
+	GNNode *node = GN_NODE(self->grab_object.node);
+	GNNodeClass *node_class = GN_NODE_GET_CLASS(node);
+	GVirDomainState node_state = node_class->get_state(node);
+	if (state)
+		switch (node_state) {
+			case GVIR_DOMAIN_STATE_NONE: {
+			} break;
+			case GVIR_DOMAIN_STATE_RUNNING:
+			case GVIR_DOMAIN_STATE_BLOCKED: {
+				// Do nothing. VM is already running
+			} break;
+			//
+			//case GVIR_DOMAIN_STATE_PAUSED
+			//case GVIR_DOMAIN_STATE_SHUTDOWN
+			case GVIR_DOMAIN_STATE_SHUTOFF:
+			case GVIR_DOMAIN_STATE_CRASHED: {
+				// Do nothing. VM is already stopped
+				node_class->start(node,NULL);
+			} break;
+			//case GVIR_DOMAIN_STATE_PMSUSPENDED
+		}
+	else switch (node_state) {
+			case GVIR_DOMAIN_STATE_NONE: {
+			} break;
+			case GVIR_DOMAIN_STATE_RUNNING:
+			case GVIR_DOMAIN_STATE_BLOCKED: {
+				node_class->stop(node,NULL);
+			} break;
+			//
+			//case GVIR_DOMAIN_STATE_PAUSED
+			//case GVIR_DOMAIN_STATE_SHUTDOWN
+			case GVIR_DOMAIN_STATE_SHUTOFF:
+			case GVIR_DOMAIN_STATE_CRASHED: {
+				// Do nothing. VM is already stopped
+			} break;
+			//case GVIR_DOMAIN_STATE_PMSUSPENDED
+		}
+	return FALSE;
+}
 G_MODULE_EXPORT void gn_main_window_delete_mode(GtkToggleButton *toggle_button, GNMainWindow *self)
 {
 	gn_main_window_reset_new_object(self);
