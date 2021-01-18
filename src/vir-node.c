@@ -105,12 +105,16 @@ static void gn_vir_node_port_disconnect(GNPlug *port)
 static void gn_vir_node_port_init(GNVirNodePort *self)
 {
 	static int next_qemu_id = 0;
+	static int instance_id = 0;
+	// FIXME Use a better global
+	if (!instance_id)
+		instance_id = abs(g_get_monotonic_time());
 	
 	// Setup hub
 	self->hub_sock = g_dir_make_tmp (NULL,/* TODO GError **error */NULL);
 	self->hub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDIN_PIPE,/* TODO GError **error */NULL,"vde_switch","-x","-s",self->hub_sock,NULL);
 	
-	self->qemu_id = g_strdup_printf("gn-vde-%d",next_qemu_id++);
+	self->qemu_id = g_strdup_printf("gn-vde-%d-%d",instance_id,next_qemu_id++);
 	self->qemu_driver = g_strdup("e1000");
 	// Set a pseudo-random MAC
 	static guint8 rand_mac[3] = {1,0,0};
