@@ -195,6 +195,26 @@ static gboolean gn_vir_node_query_tooltip(GNNode* node, int x, int y, gboolean k
 	gtk_tooltip_set_text(tooltip,gvir_domain_get_name(self->domain));
 	return TRUE;
 }
+
+static gboolean gn_vir_node_start(GNNode *node, GError **err)
+{
+	GNVirNode *self = GN_VIR_NODE(node);
+	return gvir_domain_start(self->domain,0,err);
+}
+static gboolean gn_vir_node_stop(GNNode *node, GError **err)
+{
+	GNVirNode *self = GN_VIR_NODE(node);
+	return gvir_domain_stop(self->domain,0,err);
+}
+static GVirDomainState gn_vir_node_get_state(GNNode *node)
+{
+	GNVirNode *self = GN_VIR_NODE(node);
+	int state;
+	if (virDomainGetState(self->domain_handle,&state,NULL,0))
+		return 0;
+	else return state;
+}
+
 static GListModel *gn_vir_node_query_portlist_model(GNNode* node)
 {
 	return GN_VIR_NODE(node)->ports;
@@ -230,6 +250,9 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
 	node_class->query_portlist_model = gn_vir_node_query_portlist_model;
+	node_class->start = gn_vir_node_start;
+	node_class->stop = gn_vir_node_stop;
+	node_class->get_state = gn_vir_node_get_state;
 	node_class->query_tooltip = gn_vir_node_query_tooltip;
 	
 	objclass->constructed = gn_vir_node_constructed;
