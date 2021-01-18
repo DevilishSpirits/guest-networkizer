@@ -1,6 +1,7 @@
 #pragma once
 #include <glib-object.h>
 #include <gtk/gtk.h>
+#include <libvirt-gobject/libvirt-gobject.h>
 #include "gn-ports.h"
 
 G_BEGIN_DECLS
@@ -14,7 +15,13 @@ struct _GNNodeClass {
 	gboolean (*query_tooltip)(GNNode* node, int x, int y, gboolean keyboard_mode, GtkTooltip *tooltip, GtkWidget *widget);
 	// Query list of GNPort interface GListModel (must return the same result for the same object)
 	GListModel *(*query_portlist_model)(GNNode* node);
-	//GVirDomainState (*query_state)(void);
+	
+	// Start the node
+	gboolean (*start)(GNNode *node, GError **err);
+	// Stop the node
+	gboolean (*stop)(GNNode *node, GError **err);
+	// Query current state. By default return GVIR_DOMAIN_STATE_NONE that mean N/A
+	GVirDomainState (*get_state)(GNNode *node);
 	// Render a node, (1×1 rectangle with center at 0×0)
 	void (*render)(GNNode* node, cairo_t *cr);
 };

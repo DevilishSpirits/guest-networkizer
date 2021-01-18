@@ -64,6 +64,10 @@ static void gn_node_finalize(GObject *gobject)
 	G_OBJECT_CLASS(gn_node_parent_class)->finalize(gobject);
 }
 
+static GVirDomainState gn_node_default_get_state(GNNode* node, char* text)
+{
+	return GVIR_DOMAIN_STATE_NONE;
+}
 static void gn_node_default_render(GNNode* node, cairo_t *cr)
 {
 	// FIXME please just fixme...
@@ -81,6 +85,7 @@ static void gn_node_class_init(GNNodeClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
 	klass->query_tooltip = gtk_false;
+	klass->get_state = gn_node_default_get_state;
 	klass->render = gn_node_default_render;
 	
 	objclass->get_property = gn_node_get_property;
