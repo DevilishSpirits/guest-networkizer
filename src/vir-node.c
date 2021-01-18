@@ -150,6 +150,22 @@ static void gn_vir_node_port_class_init(GNVirNodePortClass *klass)
 }
 G_DEFINE_TYPE (GNVirNode,gn_vir_node,GN_TYPE_NODE)
 
+extern GVirConnection *vir_connection; // FIXME Dirty hard-coded reference
+
+static void gn_vir_node_screenshot_to_image_at_scale_async(GNVirNode *self, int width, int height, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+{
+	// Get screen_shot
+	GVirStream *stream = gvir_connection_get_stream(vir_connection,VIR_STREAM_NONBLOCK);
+	char *mime_type = gvir_domain_screenshot(self->domain,stream,0,0,NULL);
+	if (!mime_type) {
+		g_object_unref(stream);
+	}
+	g_free(mime_type);
+	// Read datas
+	GInputStream *input_stream = g_io_stream_get_input_stream(G_IO_STREAM(stream));
+	gdk_pixbuf_new_from_stream_at_scale_async(input_stream,width,height,TRUE,cancellable,callback,user_data);
+}
+
 enum {
 	PROP_NONE,
 	PROP_DOMAIN,
@@ -188,11 +204,24 @@ static void gn_vir_node_init(GNVirNode *self)
 {
 	self->ports = g_list_store_new(GN_TYPE_PLUG);
 }
+static void gn_vir_node_screenshot_ready(GObject *source_object, GAsyncResult *res, gpointer user_data)
+{
+	gtk_image_set_from_pixbuf(GTK_IMAGE(user_data),gdk_pixbuf_new_from_stream_finish(res,NULL));
+	g_object_unref(user_data);
+}
 static gboolean gn_vir_node_query_tooltip(GNNode* node, int x, int y, gboolean keyboard_mode, GtkTooltip *tooltip, GtkWidget *widget)
 {
 	GNVirNode *self = GN_VIR_NODE(node);
-	// TODO Show more datas
-	gtk_tooltip_set_text(tooltip,gvir_domain_get_name(self->domain));
+	GtkContainer *box = GTK_CONTAINER(gtk_box_new(GTK_ORIENTATION_VERTICAL,0));
+	gtk_container_add(box,gtk_label_new(gvir_domain_get_name(self->domain)));
+	GtkWidget *image = gtk_image_new();
+	g_object_ref(image); // FIXME Keep a reference for the gn_vir_node_screenshot_ready. That's dirty
+	gn_vir_node_screenshot_to_image_at_scale_async(self,200,200,NULL,gn_vir_node_screenshot_ready,image);
+	gtk_container_add(box,image);
+	
+	GtkWidget *tooltip_widget = GTK_WIDGET(box);
+	gtk_widget_show_all(tooltip_widget);
+	gtk_tooltip_set_custom(tooltip,tooltip_widget);
 	return TRUE;
 }
 
