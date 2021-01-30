@@ -3,6 +3,7 @@
 	<gresource prefix="/me/d_spirits/guest_networkizer">
 		<!-- GtkBuilder UI files -->
 		<file preprocess="xml-stripblanks">ui/GNMainWindow</file>
+		<file preprocess="xml-stripblanks">ui/GNNodePanel</file>
 		<!-- Images -->
 		<file preprocess="xml-stripblanks">icons/network-switch-symbolic.svg</file>
 	</gresource>

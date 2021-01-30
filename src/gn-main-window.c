@@ -1,4 +1,5 @@
 #include "gn-main-window.h"
+#include "gn-node-panel.h"
 #include "vde-slirp.h"
 #include "vde-switch.h"
 #include "vir-node.h"
@@ -87,47 +88,6 @@ G_MODULE_EXPORT void gn_main_window_link_mode(GtkToggleButton *toggle_button, GN
 	self->new_node_type = GN_WINDOW_MODE_LINK;
 }
 
-G_MODULE_EXPORT gboolean gn_main_window_onoff_switch_state_set(GtkToggleButton *toggle_button, gboolean state, GNMainWindow *self)
-{
-	GNNode *node = GN_NODE(self->grab_object.node);
-	GNNodeClass *node_class = GN_NODE_GET_CLASS(node);
-	GVirDomainState node_state = node_class->get_state(node);
-	if (state)
-		switch (node_state) {
-			case GVIR_DOMAIN_STATE_NONE: {
-			} break;
-			case GVIR_DOMAIN_STATE_RUNNING:
-			case GVIR_DOMAIN_STATE_BLOCKED: {
-				// Do nothing. VM is already running
-			} break;
-			//
-			//case GVIR_DOMAIN_STATE_PAUSED
-			//case GVIR_DOMAIN_STATE_SHUTDOWN
-			case GVIR_DOMAIN_STATE_SHUTOFF:
-			case GVIR_DOMAIN_STATE_CRASHED: {
-				// Do nothing. VM is already stopped
-				node_class->start(node,NULL);
-			} break;
-			//case GVIR_DOMAIN_STATE_PMSUSPENDED
-		}
-	else switch (node_state) {
-			case GVIR_DOMAIN_STATE_NONE: {
-			} break;
-			case GVIR_DOMAIN_STATE_RUNNING:
-			case GVIR_DOMAIN_STATE_BLOCKED: {
-				node_class->stop(node,NULL);
-			} break;
-			//
-			//case GVIR_DOMAIN_STATE_PAUSED
-			//case GVIR_DOMAIN_STATE_SHUTDOWN
-			case GVIR_DOMAIN_STATE_SHUTOFF:
-			case GVIR_DOMAIN_STATE_CRASHED: {
-				// Do nothing. VM is already stopped
-			} break;
-			//case GVIR_DOMAIN_STATE_PMSUSPENDED
-		}
-	return FALSE;
-}
 G_MODULE_EXPORT void gn_main_window_delete_mode(GtkToggleButton *toggle_button, GNMainWindow *self)
 {
 	gn_main_window_reset_new_object(self);
@@ -221,12 +181,16 @@ G_MODULE_EXPORT gboolean gn_main_window_button_release(GtkWidget *widget, GdkEve
 	const int is_click_max_delta = gn_main_window_get_screen_resolution(self)/10 + 1;
 	gboolean is_click = (abs(self->button_press_mouse_location.x - event->x) <= is_click_max_delta) && (abs(self->button_press_mouse_location.y - event->y) <= is_click_max_delta);
 	// Check for context menu
-	if ((event->button == 3) && (self->grab_object_type == GN_NET_NODE) && is_click) {
+	if ((event->button == 3) && (target_object_type == GN_NET_NODE) && is_click) {
 		GdkRectangle rect = {
 			(round(workspace_x)-.5)*view_scale + self->view_x,
 			(round(workspace_y)-.5)*view_scale + self->view_y,
 			view_scale,view_scale
 		};
+		GtkWidget *previous_child = gtk_bin_get_child(GTK_BIN(self->context_node_popover));
+		if (previous_child)
+			gtk_container_remove(GTK_CONTAINER(self->context_node_popover),previous_child);
+		gtk_container_add(GTK_CONTAINER(self->context_node_popover),gtk_widget_new(GN_TYPE_NODE_PANEL,"node",target_object.node,"visible",TRUE,NULL));
 		gtk_popover_set_pointing_to(self->context_node_popover,&rect);
 		gtk_popover_popup(self->context_node_popover);
 	} else

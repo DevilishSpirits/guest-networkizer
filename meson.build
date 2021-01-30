@@ -14,6 +14,7 @@ srcs = [
 	'src/gn-main-window-add-link-dialog.c',
 	'src/gn-net.c',
 	'src/gn-node.c',
+	'src/gn-node-panel.c',
 	'src/gn-ports.c',
 	'src/main.c',
 	'src/vde-slirp.c',

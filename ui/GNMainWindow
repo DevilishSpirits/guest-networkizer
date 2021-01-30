@@ -462,13 +462,7 @@ They will automatically appear here but not their network interface, use this ap
     <property name="relative-to">workspace_drawingarea</property>
     <property name="position">left</property>
     <child>
-      <object class="GtkSwitch">
-        <property name="visible">True</property>
-        <property name="can-focus">True</property>
-        <property name="tooltip-markup" translatable="yes">&lt;b&gt;Start/stop device&lt;/b&gt;
-This slider control the device status.</property>
-        <signal name="state-set" handler="gn_main_window_onoff_switch_state_set" swapped="no"/>
-      </object>
+      <placeholder/>
     </child>
   </object>
   <object class="GtkMenu">
