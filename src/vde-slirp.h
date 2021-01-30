@@ -10,6 +10,7 @@ struct _GNVDESlirp {
 	
 	GSubprocess *slirp_process;
 	GListStore  *ports;
+	GNPort *port;
 };
 
 G_END_DECLS

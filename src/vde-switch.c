@@ -1,13 +1,15 @@
 #include "vde-switch.h"
 
-G_DECLARE_FINAL_TYPE(GNVDESwitchPort,gn_vde_switch_port,GN,VDE_SWITCH_PORT,GNReceptacle)
+G_DECLARE_FINAL_TYPE(GNVDESwitchPort,gn_vde_switch_port,GN,VDE_SWITCH_PORT,GNPort)
 struct _GNVDESwitchPort {
-	GNReceptacle parent_instance;
+	GNPort parent_instance;
+	GSubprocess* real_side_plug;
+	GSubprocess* buff_side_plug;
 	int  port_no;
 	char *sock_path;
 	char *name;
 };
-G_DEFINE_TYPE (GNVDESwitchPort,gn_vde_switch_port,GN_TYPE_RECEPTACLE)
+G_DEFINE_TYPE (GNVDESwitchPort,gn_vde_switch_port,GN_TYPE_PORT)
 static const char *gn_vde_switch_get_name(GNPort *port)
 {
 	GNVDESwitchPort *self = GN_VDE_SWITCH_PORT(port);
@@ -18,18 +20,9 @@ static const char *gn_vde_switch_get_name(GNPort *port)
 static void gn_vde_switch_port_init(GNVDESwitchPort *self)
 {
 }
-const char* gn_vde_switch_port_get_path(GNReceptacle* receptacle, int *port_no, GError **error)
-{
-	GNVDESwitchPort *self = GN_VDE_SWITCH_PORT(receptacle);
-	*port_no = self->port_no;
-	return self->sock_path;
-}
 static void gn_vde_switch_port_class_init(GNVDESwitchPortClass *klass)
 {
-	GNReceptacleClass *receptacle_klass = GN_RECEPTACLE_CLASS(klass);
 	GNPortClass *port_class = GN_PORT_CLASS(klass);
-	
-	receptacle_klass->get_path = gn_vde_switch_port_get_path;
 	
 	port_class->get_name = gn_vde_switch_get_name;
 }
@@ -40,7 +33,7 @@ static void gn_vde_switch_init(GNVDESwitch *self)
 	// TODO Move that elsewhere
 	self->sock_path = g_dir_make_tmp (NULL,/* TODO GError **error */NULL);
 	self->switch_process = g_subprocess_new(G_SUBPROCESS_FLAGS_STDIN_PIPE,NULL/* TODO GError **error */,"vde_switch","-s",self->sock_path,NULL);
-	self->ports = g_list_store_new(GN_TYPE_RECEPTACLE);
+	self->ports = g_list_store_new(GN_TYPE_PORT);
 	// TODO Adaptative port number
 	for (int i = 0; i < 8; i++) {
 		// TODO Use clean initialization
@@ -49,6 +42,17 @@ static void gn_vde_switch_init(GNVDESwitch *self)
 		port->port_no = i;
 		g_list_store_append(self->ports,port);
 		g_object_unref(port);
+		
+		int fds_r2b[2] = {-1,-1};
+		int fds_b2r[2] = {-1,-1};
+		g_unix_open_pipe(fds_r2b,0,NULL);
+		g_unix_open_pipe(fds_b2r,0,NULL);
+		port->real_side_plug = gn_mk_plug_no(self->sock_path,i+1,fds_b2r[0],fds_r2b[1],NULL);
+		port->buff_side_plug = gn_port_do_plug(port,fds_r2b[0],fds_b2r[1],NULL);
+		close(fds_r2b[0]);
+		close(fds_r2b[1]);
+		close(fds_b2r[0]);
+		close(fds_b2r[1]);
 	}
 	
 }

@@ -4,6 +4,10 @@
 typedef struct _GNPortPrivate {
 	GNPort *link;
 	GNNode *node;
+	
+	char*        hub_sock;
+	GSubprocess* hub;
+	GSubprocess* plug;
 } GNPortPrivate;
 G_DEFINE_TYPE_WITH_PRIVATE(GNPort,gn_port,G_TYPE_OBJECT)
 
@@ -21,8 +25,16 @@ static const char* gn_port_default_get_name(GNPort* port)
 	return default_name;
 }
 
+const char* gn_port_get_hub_sock(GNPort* port)
+{
+	GNPortPrivate *priv = gn_port_get_instance_private(port);
+	return priv->hub_sock;
+}
 static void gn_port_init(GNPort *self)
 {
+	GNPortPrivate *priv = gn_port_get_instance_private(self);
+	priv->hub_sock = g_dir_make_tmp (NULL,/* TODO GError **error */NULL);
+	priv->hub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDIN_PIPE,/* TODO GError **error */NULL,"vde_switch","-x","-s",priv->hub_sock,NULL);
 }
 
 static void gn_port_dispose(GObject *gobject)
@@ -34,6 +46,11 @@ static void gn_port_dispose(GObject *gobject)
 
 static void gn_port_finalize(GObject *gobject)
 {
+	GNPort *self = GN_PORT(gobject);
+	GNPortPrivate *priv = gn_port_get_instance_private(self);
+	g_subprocess_force_exit(priv->hub);
+	g_object_unref(priv->hub);
+	g_free(priv->hub_sock);
 	G_OBJECT_CLASS(gn_port_parent_class)->finalize(gobject);
 }
 
@@ -73,8 +90,7 @@ static void gn_port_class_init(GNPortClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
 	klass->get_name = gn_port_default_get_name;
-	klass->link_change = (gboolean(*)(GNPort*,GNPort*,GNPort*,GError**))gtk_false;
-	
+	klass->set_carrier = (gboolean(*)(GNPort*,GNPort*,gboolean,GError**))gtk_true;
 	objclass->get_property = gn_port_get_property;
 	objclass->set_property = gn_port_set_property;
 	objclass->dispose = gn_port_dispose;
@@ -109,11 +125,14 @@ GNPort *gn_port_get_link(GNPort* port)
 gboolean gn_port_set_link(GNPort* port, GNPort *new_link, GError **error)
 {
 	GNPortPrivate *priv     = gn_port_get_instance_private(port);
+	GNPortClass   *port_class = GN_PORT_GET_CLASS(port);
 	GNPort        *old_link = priv->link;
 	if (priv->link == new_link)
 		return TRUE;
 	GNPortPrivate *old_priv = old_link ? gn_port_get_instance_private(old_link) : NULL;
 	GNPortPrivate *new_priv = new_link ? gn_port_get_instance_private(new_link) : NULL;
+	GNPortClass   *old_class = old_link ? GN_PORT_GET_CLASS(old_link) : NULL;
+	GNPortClass   *new_class = new_link ? GN_PORT_GET_CLASS(new_link) : NULL;
 	GNPort        *new_link_old = new_priv ? new_priv->link : NULL;
 	GArray        *net_link = gn_node_get_net(priv->node)->links;
 	
@@ -142,11 +161,37 @@ gboolean gn_port_set_link(GNPort* port, GNPort *new_link, GError **error)
 		new_priv->link = port;
 	}
 	
-	// Trigger "link_change"
 	gboolean result = TRUE;
-	if (old_link) result &= GN_PORT_GET_CLASS(old_link)->link_change(old_link,port,NULL,error);
-	result &= GN_PORT_GET_CLASS(port)->link_change(port,old_link,new_link,error);
-	if (new_link) result &= GN_PORT_GET_CLASS(new_link)->link_change(new_link,new_link_old,port,error);
+	// Unplug
+	if (old_link) {
+		old_class->set_carrier(old_link,FALSE,NULL);
+		if (old_priv->plug) {
+			g_subprocess_force_exit(old_priv->plug);
+			g_object_unref(old_priv->plug);
+			old_priv->plug = NULL;
+		}
+		port_class->set_carrier(port,FALSE,NULL);
+	}
+	if (priv->plug) {
+		g_subprocess_force_exit(priv->plug);
+		g_object_unref(priv->plug);
+		priv->plug = NULL;
+	}
+	// Replug
+	if (new_link) {
+		int fds_p2n[2] = {-1,-1};
+		int fds_n2p[2] = {-1,-1};
+		result = g_unix_open_pipe(fds_p2n,0,error) && g_unix_open_pipe(fds_n2p,0,error)
+		&& (priv->plug = gn_port_do_plug(port,fds_n2p[0],fds_p2n[1],error))
+		&& (new_priv->plug = gn_port_do_plug(new_link,fds_p2n[0],fds_n2p[1],error))
+		;
+		close(fds_p2n[0]);
+		close(fds_p2n[1]);
+		close(fds_n2p[0]);
+		close(fds_n2p[1]);
+		result &= port_class->set_carrier(port,TRUE,error);
+		result &= new_class->set_carrier(new_link,TRUE,error);
+	}
 	// Fire property changes
 	if (old_link) g_object_notify_by_pspec(G_OBJECT(old_link),obj_properties[PROP_LINK]);
 	g_object_notify_by_pspec(G_OBJECT(port),obj_properties[PROP_LINK]);
@@ -154,88 +199,27 @@ gboolean gn_port_set_link(GNPort* port, GNPort *new_link, GError **error)
 	return TRUE /* TODO result */;
 }
 
-G_DEFINE_TYPE(GNPlug,gn_plug,GN_TYPE_PORT)
-
-gboolean gn_plug_link_change(GNPort* port, GNPort* old_link, GNPort* new_link, GError **error)
+GSubprocess* gn_mk_plug(const char* hub_sock, int his_rx, int his_tx, GError **error)
 {
-	GNPlug *self = GN_PLUG(port);
-	GNPlugClass *klass = GN_PLUG_GET_CLASS(self);
-	if (old_link)
-		klass->disconnect(self);
-	if (new_link) {
-		GNReceptacle *receptacle = GN_RECEPTACLE(new_link);
-		GNReceptacleClass *receptacle_class = GN_RECEPTACLE_GET_CLASS(receptacle);
-		int port_no;
-		const char* sock_path = receptacle_class->get_path(receptacle,&port_no,error);
-		klass->connect_vde2(self,sock_path,port_no,NULL);
-	}
-	return FALSE;
+	GSubprocessLauncher *launcher = g_subprocess_launcher_new(0);
+	g_subprocess_launcher_take_stdin_fd(launcher,his_rx);
+	g_subprocess_launcher_take_stdout_fd(launcher,his_tx);
+	GSubprocess* process = g_subprocess_launcher_spawn(launcher,error,"vde_plug",hub_sock,NULL);
+	g_object_unref(launcher);
+	return process;
 }
-
-static void gn_plug_init(GNPlug *self)
+GSubprocess* gn_mk_plug_no(const char* hub_sock, int port_no, int his_rx, int his_tx, GError **error)
 {
+	GSubprocessLauncher *launcher = g_subprocess_launcher_new(0);
+	g_subprocess_launcher_take_stdin_fd(launcher,his_rx);
+	g_subprocess_launcher_take_stdout_fd(launcher,his_tx);
+	char* port_no_str = g_strdup_printf("%d",port_no);
+	GSubprocess* process = g_subprocess_launcher_spawn(launcher,error,"vde_plug","--port",port_no_str,hub_sock,NULL);
+	g_free(port_no_str);
+	g_object_unref(launcher);
+	return process;
 }
-
-static void gn_plug_dispose(GObject *gobject)
+GSubprocess* gn_port_do_plug(GNPort* port, int his_rx, int his_tx, GError **error)
 {
-	G_OBJECT_CLASS(gn_plug_parent_class)->dispose(gobject);
-}
-
-static void gn_plug_finalize(GObject *gobject)
-{
-	G_OBJECT_CLASS(gn_plug_parent_class)->finalize(gobject);
-}
-
-
-gboolean gn_plug_default_vde2(GNPlug* port, const char* socket_path, int port_no, GError **error)
-{
-	GNPlugClass *klass = GN_PLUG_CLASS(G_OBJECT_GET_CLASS(port));
-	if (klass->connect_vde4) {
-		gchar *uri = g_strdup_printf("vde://%s[%i]",socket_path,port_no);
-		gboolean result = klass->connect_vde4(port,uri,error);
-		g_free(uri);
-		return result;
-	} else {
-		g_critical("%s must implement connect_vde2 or connect_vde4.",G_OBJECT_TYPE_NAME(port));
-		g_set_error(error,g_quark_from_string("gn-dummy-domain"),1,"%s must implement connect_vde2 or connect_vde4.",G_OBJECT_TYPE_NAME(port));
-		return FALSE;
-	}
-}
-
-static void gn_plug_class_init(GNPlugClass *klass)
-{
-	GNPortClass* port_class = GN_PORT_CLASS(klass);
-	GObjectClass* objclass = G_OBJECT_CLASS(klass);
-	
-	klass->connect_vde2 = gn_plug_default_vde2;
-	
-	port_class->link_change = gn_plug_link_change;
-	
-	objclass->dispose = gn_plug_dispose;
-	objclass->finalize = gn_plug_finalize;
-}
-
-
-G_DEFINE_TYPE(GNReceptacle,gn_receptacle,GN_TYPE_PORT)
-
-static void gn_receptacle_init(GNReceptacle *self)
-{
-}
-
-static void gn_receptacle_dispose(GObject *gobject)
-{
-	G_OBJECT_CLASS(gn_receptacle_parent_class)->dispose(gobject);
-}
-
-static void gn_receptacle_finalize(GObject *gobject)
-{
-	G_OBJECT_CLASS(gn_receptacle_parent_class)->finalize(gobject);
-}
-
-static void gn_receptacle_class_init(GNReceptacleClass *klass)
-{
-	GObjectClass* objclass = G_OBJECT_CLASS(klass);
-	
-	objclass->dispose = gn_receptacle_dispose;
-	objclass->finalize = gn_receptacle_finalize;
+	gn_mk_plug(gn_port_get_hub_sock(port),his_rx,his_tx,error);
 }
