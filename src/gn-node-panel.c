@@ -1,4 +1,5 @@
 #include "gn-node-panel.h"
+#include "vde-ns.h"
 
 G_DEFINE_TYPE(GNNodePanel,gn_node_panel,GTK_TYPE_BOX)
 
@@ -73,6 +74,13 @@ G_MODULE_EXPORT gboolean gn_node_panel_onoff_switch_state_set(GtkToggleButton *t
 	return FALSE;
 }
 
+G_MODULE_EXPORT gboolean gn_node_panel_wireshark(GtkWidget *button, GNNodePanel *self)
+{
+	 const char *argv[] = {"sh","-c","for i in $(ip l | grep -E '^[0-9]:' | cut -f2 -d':'); do ip l set $i up; done && exec wireshark",NULL};
+	GSubprocess *subprocess = gn_vde_ns_subprocess_node(self->node,argv,0,NULL/* TODO GError **error */);
+	g_object_unref(subprocess);
+}
+
 void gn_node_panel_set_node(GNNodePanel *panel, GNNode *node)
 {
 	g_clear_object(&panel->node);
@@ -80,6 +88,7 @@ void gn_node_panel_set_node(GNNodePanel *panel, GNNode *node)
 	panel->node_class = GN_NODE_GET_CLASS(node);
 	
 	gtk_widget_set_visible(GTK_WIDGET(panel->onoff_switch),panel->node_class->start || panel->node_class->stop);
+	gn_node_panel_node_state_changed(panel);
 }
 
 static void gn_node_panel_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
@@ -108,6 +117,13 @@ static void gn_node_panel_get_property(GObject *object, guint property_id, GValu
 static void gn_node_panel_init(GNNodePanel *self)
 {
 	gtk_widget_init_template(GTK_WIDGET(self));
+	
+	// Check for vdens debug tools would works
+	if (gn_vde_ns_can(NULL)) {
+		// TODO Check for Wireshark
+	} else {
+		gtk_widget_destroy(self->wireshark_button);
+	}
 }
 static void gn_node_panel_dispose(GNNodePanel *self)
 {
@@ -127,5 +143,6 @@ static void gn_node_panel_class_init(GNNodePanelClass *klass)
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
 	
 	gtk_widget_class_set_template_from_resource(widget_class,"/me/d_spirits/guest_networkizer/ui/GNNodePanel");
+	gtk_widget_class_bind_template_child(widget_class,GNNodePanel,wireshark_button);
 	gtk_widget_class_bind_template_child(widget_class,GNNodePanel,onoff_switch);
 }

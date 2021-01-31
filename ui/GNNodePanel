@@ -7,9 +7,52 @@
     <property name="can-focus">False</property>
     <property name="orientation">vertical</property>
     <child>
-      <object class="GtkSwitch" id="onoff_switch">
-        <property name="can-focus">True</property>
-        <signal name="state-set" handler="gn_node_panel_onoff_switch_state_set" swapped="no"/>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <child>
+          <object class="GtkButtonBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="layout-style">expand</property>
+            <child>
+              <object class="GtkButton" id="wireshark_button">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="gn_node_panel_wireshark" swapped="no"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">wireshark</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSwitch" id="onoff_switch">
+            <property name="can-focus">True</property>
+            <signal name="state-set" handler="gn_node_panel_onoff_switch_state_set" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
       </object>
       <packing>
         <property name="expand">False</property>

@@ -12,6 +12,7 @@ struct _GNNodePanel {
 	GNNode *node;
 	GNNodeClass *node_class;
 	// Template widgets
+	GtkWidget *wireshark_button;
 	GtkSwitch *onoff_switch;
 };
 G_END_DECLS
