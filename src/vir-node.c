@@ -10,6 +10,8 @@ struct _GNVirNodePort {
 };
 G_DEFINE_TYPE (GNVirNodePort,gn_vir_node_port,GN_TYPE_PORT)
 
+static GVirDomainState gn_vir_node_get_state(GNNode *node);
+
 static gboolean gn_vir_node_perform_qemu(GNVirNodePort *self, const char* cmd, char** result, GError** error)
 {
 	#define gn_vir_node_perform_qemu_debug_fmtnargs "%s {%s} (qemu) %s\n%s",gvir_domain_get_name(vir_node->domain),gvir_domain_get_uuid(vir_node->domain),cmd,*result
@@ -165,6 +167,51 @@ static void gn_vir_node_set_property(GObject *object, guint property_id, const G
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
 	}
 }
+
+static void gn_vir_node_render(GNNode* node, cairo_t *cr)
+{
+	GNVirNode *self = GN_VIR_NODE(node);
+	// Get real pixel size
+	double picx = 1;
+	double picy = 0;
+	cairo_user_to_device_distance(cr,&picx,&picy);
+	// Render computer screen
+	// TODO Cache icons
+	GtkIconInfo *icon_info = gtk_icon_theme_lookup_icon(gtk_icon_theme_get_default(),"computer",picx,0);
+	GdkPixbuf *pixbuf = gtk_icon_info_load_icon(icon_info,NULL);
+	g_object_unref(icon_info);
+	gdk_cairo_set_source_pixbuf(cr,pixbuf,0,0);
+	g_object_unref(pixbuf);
+	cairo_matrix_t matrix;
+	cairo_matrix_init_scale(&matrix,picx,picx);
+	cairo_matrix_translate(&matrix,.5,.5);
+	cairo_pattern_set_matrix(cairo_get_source(cr),&matrix);
+	cairo_rectangle(cr,-.5,-.5,1,1);
+	cairo_fill(cr);
+	
+	// Render text
+	cairo_text_extents_t extents;
+	const char *label = gvir_domain_get_name(self->domain);
+	cairo_set_font_size(cr,.2);
+	cairo_text_extents(cr,label,&extents);
+	cairo_translate(cr,-extents.width/2,.8);
+	// Set background depending of the VM state
+	switch (gn_vir_node_get_state(node)) {
+		case GVIR_DOMAIN_STATE_RUNNING    :cairo_set_source_rgba(cr,.0,.4,.0,.8);break;
+		case GVIR_DOMAIN_STATE_BLOCKED    :cairo_set_source_rgba(cr,.4,.0,.2,.8);break;
+		case GVIR_DOMAIN_STATE_PAUSED     :cairo_set_source_rgba(cr,.2,.3,.0,.8);break;
+		case GVIR_DOMAIN_STATE_SHUTDOWN   :cairo_set_source_rgba(cr,.4,.2,.0,.8);break;
+		case GVIR_DOMAIN_STATE_SHUTOFF    :cairo_set_source_rgba(cr,.2,.1,.1,.8);break;
+		case GVIR_DOMAIN_STATE_CRASHED    :cairo_set_source_rgba(cr,.4,.0,.0,.8);break;
+		case GVIR_DOMAIN_STATE_PMSUSPENDED:cairo_set_source_rgba(cr,.2,.3,.0,.8);break; 
+		default:cairo_set_source_rgba(cr,0,0,0,.8);break;
+	}
+	cairo_rectangle(cr,-.1+extents.x_bearing,-.1+extents.y_bearing,extents.width+.2,extents.height+.2);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr,1,1,1);
+	cairo_show_text(cr,label);
+}
+
 static void gn_vir_node_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
 {
 	GNVirNode *self = GN_VIR_NODE(object);
@@ -257,6 +304,7 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 	node_class->query_portlist_model = gn_vir_node_query_portlist_model;
 	node_class->start = gn_vir_node_start;
 	node_class->stop = gn_vir_node_stop;
+	node_class->render = gn_vir_node_render;
 	node_class->get_state = gn_vir_node_get_state;
 	node_class->query_tooltip = gn_vir_node_query_tooltip;
 	
