@@ -128,11 +128,14 @@ extern GVirConnection *vir_connection; // FIXME Dirty hard-coded reference
 
 static void gn_vir_node_screenshot_to_image_at_scale_async(GNVirNode *self, int width, int height, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
+	// TODO Ensure the domain is running
 	// Get screen_shot
 	GVirStream *stream = gvir_connection_get_stream(vir_connection,VIR_STREAM_NONBLOCK);
 	char *mime_type = gvir_domain_screenshot(self->domain,stream,0,0,NULL);
 	if (!mime_type) {
 		g_object_unref(stream);
+		// TODO Load a dummy icon
+		return;
 	}
 	g_free(mime_type);
 	// Read datas
