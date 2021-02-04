@@ -74,6 +74,25 @@ G_MODULE_EXPORT gboolean gn_node_panel_onoff_switch_state_set(GtkToggleButton *t
 	return FALSE;
 }
 
+G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *button, GtkWidget *self)
+{
+	GtkContainer *parent = GTK_CONTAINER(gtk_widget_get_parent(self));
+	// Unparent myself
+	g_object_ref(self); // Ensure I'm not killed
+	gtk_container_remove(parent,self);
+	
+	// Put me in a window
+	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_container_add(GTK_CONTAINER(window),self);
+	g_object_unref(self);
+	gtk_widget_show(window);
+	
+	// Destroy this button
+	gtk_widget_destroy(button);
+	
+	// Popdown parent
+	gtk_popover_popdown(GTK_POPOVER(parent));
+}
 G_MODULE_EXPORT gboolean gn_node_panel_wireshark(GtkWidget *button, GNNodePanel *self)
 {
 	 const char *argv[] = {"sh","-c","for i in $(ip l | grep -E '^[0-9]:' | cut -f2 -d':'); do ip l set $i up; done && exec wireshark",NULL};
