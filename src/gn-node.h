@@ -29,6 +29,15 @@ struct _GNNodeClass {
 GdkPoint *gn_node_position(GNNode* node);
 GNNode *gn_port_get_node(GNPort* port);
 
+#define GN_NODE_DARK_COLOR_RUNNING     .0,.4,.0
+#define GN_NODE_DARK_COLOR_BLOCKED     .4,.0,.2
+#define GN_NODE_DARK_COLOR_PAUSED      .2,.3,.0
+#define GN_NODE_DARK_COLOR_SHUTDOWN    .4,.2,.0
+#define GN_NODE_DARK_COLOR_SHUTOFF     .2,.1,.1
+#define GN_NODE_DARK_COLOR_CRASHED     .4,.0,.0
+#define GN_NODE_DARK_COLOR_PMSUSPENDED .2,.3,.0
+#define GN_NODE_DARK_COLOR_DEFAULT     .0,.0,.0
+
 G_END_DECLS
 
 typedef struct _GNLink {

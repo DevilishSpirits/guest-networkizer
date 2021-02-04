@@ -197,14 +197,14 @@ static void gn_vir_node_render(GNNode* node, cairo_t *cr)
 	cairo_translate(cr,-extents.width/2,.8);
 	// Set background depending of the VM state
 	switch (gn_vir_node_get_state(node)) {
-		case GVIR_DOMAIN_STATE_RUNNING    :cairo_set_source_rgba(cr,.0,.4,.0,.8);break;
-		case GVIR_DOMAIN_STATE_BLOCKED    :cairo_set_source_rgba(cr,.4,.0,.2,.8);break;
-		case GVIR_DOMAIN_STATE_PAUSED     :cairo_set_source_rgba(cr,.2,.3,.0,.8);break;
-		case GVIR_DOMAIN_STATE_SHUTDOWN   :cairo_set_source_rgba(cr,.4,.2,.0,.8);break;
-		case GVIR_DOMAIN_STATE_SHUTOFF    :cairo_set_source_rgba(cr,.2,.1,.1,.8);break;
-		case GVIR_DOMAIN_STATE_CRASHED    :cairo_set_source_rgba(cr,.4,.0,.0,.8);break;
-		case GVIR_DOMAIN_STATE_PMSUSPENDED:cairo_set_source_rgba(cr,.2,.3,.0,.8);break; 
-		default:cairo_set_source_rgba(cr,0,0,0,.8);break;
+		case GVIR_DOMAIN_STATE_RUNNING    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_RUNNING    ,.8);break;
+		case GVIR_DOMAIN_STATE_BLOCKED    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_BLOCKED    ,.8);break;
+		case GVIR_DOMAIN_STATE_PAUSED     :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_PAUSED     ,.8);break;
+		case GVIR_DOMAIN_STATE_SHUTDOWN   :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_SHUTDOWN   ,.8);break;
+		case GVIR_DOMAIN_STATE_SHUTOFF    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_SHUTOFF    ,.8);break;
+		case GVIR_DOMAIN_STATE_CRASHED    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_CRASHED    ,.8);break;
+		case GVIR_DOMAIN_STATE_PMSUSPENDED:cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_PMSUSPENDED,.8);break; 
+		default                           :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_DEFAULT    ,.8);break;
 	}
 	cairo_rectangle(cr,-.1+extents.x_bearing,-.1+extents.y_bearing,extents.width+.2,extents.height+.2);
 	cairo_fill(cr);
