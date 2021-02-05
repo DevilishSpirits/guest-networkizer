@@ -5,6 +5,7 @@
 		<file preprocess="xml-stripblanks">ui/GNMainWindow</file>
 		<file preprocess="xml-stripblanks">ui/GNNodePanel</file>
 		<!-- Images -->
+		<file preprocess="xml-stripblanks">icons/network-router-symbolic.svg</file>
 		<file preprocess="xml-stripblanks">icons/network-switch-symbolic.svg</file>
 	</gresource>
 </gresources>
