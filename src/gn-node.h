@@ -11,6 +11,8 @@ G_DECLARE_DERIVABLE_TYPE(GNNode,gn_node,GN,NODE,GObject)
 
 struct _GNNodeClass {
 	GObjectClass parent_class;
+	// Get a name to display
+	const char* (*get_label)(GNNode* node);
 	// Query a tooltip
 	gboolean (*query_tooltip)(GNNode* node, int x, int y, gboolean keyboard_mode, GtkTooltip *tooltip, GtkWidget *widget);
 	// Query list of GNPort interface GListModel (must return the same result for the same object)
@@ -28,6 +30,8 @@ struct _GNNodeClass {
 
 GdkPoint *gn_node_position(GNNode* node);
 GNNode *gn_port_get_node(GNPort* port);
+
+void gn_node_notify_label_change(GNNode* node);
 
 #define GN_NODE_DARK_COLOR_RUNNING     .0,.4,.0
 #define GN_NODE_DARK_COLOR_BLOCKED     .4,.0,.2

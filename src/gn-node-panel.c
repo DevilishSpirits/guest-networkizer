@@ -83,6 +83,7 @@ G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *button, GtkWidget *self)
 	
 	// Put me in a window
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	g_object_bind_property(GN_NODE_PANEL(self)->node,"label",window,"title",G_BINDING_SYNC_CREATE);
 	gtk_container_add(GTK_CONTAINER(window),self);
 	g_object_unref(self);
 	gtk_widget_show(window);

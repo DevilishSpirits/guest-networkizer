@@ -188,28 +188,6 @@ static void gn_vir_node_render(GNNode* node, cairo_t *cr)
 	cairo_pattern_set_matrix(cairo_get_source(cr),&matrix);
 	cairo_rectangle(cr,-.5,-.5,1,1);
 	cairo_fill(cr);
-	
-	// Render text
-	cairo_text_extents_t extents;
-	const char *label = gvir_domain_get_name(self->domain);
-	cairo_set_font_size(cr,.2);
-	cairo_text_extents(cr,label,&extents);
-	cairo_translate(cr,-extents.width/2,.8);
-	// Set background depending of the VM state
-	switch (gn_vir_node_get_state(node)) {
-		case GVIR_DOMAIN_STATE_RUNNING    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_RUNNING    ,.8);break;
-		case GVIR_DOMAIN_STATE_BLOCKED    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_BLOCKED    ,.8);break;
-		case GVIR_DOMAIN_STATE_PAUSED     :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_PAUSED     ,.8);break;
-		case GVIR_DOMAIN_STATE_SHUTDOWN   :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_SHUTDOWN   ,.8);break;
-		case GVIR_DOMAIN_STATE_SHUTOFF    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_SHUTOFF    ,.8);break;
-		case GVIR_DOMAIN_STATE_CRASHED    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_CRASHED    ,.8);break;
-		case GVIR_DOMAIN_STATE_PMSUSPENDED:cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_PMSUSPENDED,.8);break; 
-		default                           :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_DEFAULT    ,.8);break;
-	}
-	cairo_rectangle(cr,-.1+extents.x_bearing,-.1+extents.y_bearing,extents.width+.2,extents.height+.2);
-	cairo_fill(cr);
-	cairo_set_source_rgb(cr,1,1,1);
-	cairo_show_text(cr,label);
 }
 
 static void gn_vir_node_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
@@ -259,6 +237,11 @@ static gboolean gn_vir_node_stop(GNNode *node, GError **err)
 	GNVirNode *self = GN_VIR_NODE(node);
 	return gvir_domain_stop(self->domain,0,err);
 }
+static const char* gn_vir_node_get_label(GNNode *node)
+{
+	GNVirNode *self = GN_VIR_NODE(node);
+	return gvir_domain_get_name(self->domain);
+}
 static GVirDomainState gn_vir_node_get_state(GNNode *node)
 {
 	GNVirNode *self = GN_VIR_NODE(node);
@@ -305,6 +288,7 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 	node_class->start = gn_vir_node_start;
 	node_class->stop = gn_vir_node_stop;
 	node_class->render = gn_vir_node_render;
+	node_class->get_label = gn_vir_node_get_label;
 	node_class->get_state = gn_vir_node_get_state;
 	node_class->query_tooltip = gn_vir_node_query_tooltip;
 	

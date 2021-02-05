@@ -21,6 +21,7 @@ GNNet *gn_node_get_net(GNNode* node)
 enum {
 	PROP_NONE,
 	PROP_NET,
+	PROP_LABEL,
 	N_PROPERTIES
 };
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
@@ -40,14 +41,22 @@ static void gn_node_set_property(GObject *object, guint property_id, const GValu
 static void gn_node_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
 {
 	GNNode *self = GN_NODE(object);
+	GNNodeClass *klass = GN_NODE_GET_CLASS(self);
 	GNNodePrivate *priv = gn_node_get_instance_private(self);
 	switch (property_id) {
 		case PROP_NET: {
 			g_value_set_object(value,priv->net);
 		} break;
+		case PROP_LABEL: {
+			g_value_set_string(value,klass->get_label(self));
+		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
 	}
+}
+void gn_node_notify_label_change(GNNode* node)
+{
+	g_object_notify_by_pspec(G_OBJECT(node),obj_properties[PROP_LABEL]);
 }
 
 static void gn_node_init(GNNode *self)
@@ -68,16 +77,16 @@ static GVirDomainState gn_node_default_get_state(GNNode* node, char* text)
 {
 	return GVIR_DOMAIN_STATE_NONE;
 }
+static const char* gn_node_default_get_label(GNNode* node)
+{
+	return G_OBJECT_TYPE_NAME(node);
+}
 static void gn_node_default_render(GNNode* node, cairo_t *cr)
 {
-	// FIXME please just fixme...
 	cairo_translate(cr,-.5,.5);
 	cairo_set_source_rgb(cr,1,.5,.5);
 	cairo_rectangle(cr,0,-1,1,1);
 	cairo_fill(cr);
-	cairo_set_source_rgb(cr,1,0,0);
-	cairo_set_font_size(cr,.25);
-	cairo_show_text(cr,G_OBJECT_TYPE_NAME(node));
 }
 
 static void gn_node_class_init(GNNodeClass *klass)
@@ -85,6 +94,7 @@ static void gn_node_class_init(GNNodeClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
 	klass->query_tooltip = gtk_false;
+	klass->get_label = gn_node_default_get_label;
 	klass->get_state = gn_node_default_get_state;
 	klass->render = gn_node_default_render;
 	
@@ -95,5 +105,7 @@ static void gn_node_class_init(GNNodeClass *klass)
 	
 	obj_properties[PROP_NET] = g_param_spec_object("net", "Network", "Network",
 		GN_TYPE_NET,G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY);
+	obj_properties[PROP_LABEL] = g_param_spec_string("label", "Label", "Node label",
+		NULL,G_PARAM_READABLE);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
 }

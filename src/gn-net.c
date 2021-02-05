@@ -11,11 +11,37 @@ static void gn_net_init(GNNet *self)
 
 static void gn_net_draw_node(GNNode *node, cairo_t *cr)
 {
+	GNNodeClass *node_class = GN_NODE_GET_CLASS(node);
 	GdkPoint *position = gn_node_position(node);
+	// Go in node coordinates
 	cairo_save(cr);
 	cairo_translate(cr,position->x,position->y);
 	cairo_scale(cr,.8,.8); // Gap between components
-	GN_NODE_GET_CLASS(node)->render(node,cr);
+	// Draw the node
+	cairo_save(cr);
+	node_class->render(node,cr);
+	cairo_restore(cr);
+	// Draw label
+	cairo_text_extents_t extents;
+	const char *label = node_class->get_label(node);
+	cairo_set_font_size(cr,.2);
+	cairo_text_extents(cr,label,&extents);
+	cairo_translate(cr,-extents.width/2,.8);
+	// Set background depending of the VM state
+	switch (node_class->get_state(node)) {
+		case GVIR_DOMAIN_STATE_RUNNING    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_RUNNING    ,.8);break;
+		case GVIR_DOMAIN_STATE_BLOCKED    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_BLOCKED    ,.8);break;
+		case GVIR_DOMAIN_STATE_PAUSED     :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_PAUSED     ,.8);break;
+		case GVIR_DOMAIN_STATE_SHUTDOWN   :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_SHUTDOWN   ,.8);break;
+		case GVIR_DOMAIN_STATE_SHUTOFF    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_SHUTOFF    ,.8);break;
+		case GVIR_DOMAIN_STATE_CRASHED    :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_CRASHED    ,.8);break;
+		case GVIR_DOMAIN_STATE_PMSUSPENDED:cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_PMSUSPENDED,.8);break; 
+		default                           :cairo_set_source_rgba(cr,GN_NODE_DARK_COLOR_DEFAULT    ,.8);break;
+	}
+	cairo_rectangle(cr,-.1+extents.x_bearing,-.1+extents.y_bearing,extents.width+.2,extents.height+.2);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr,1,1,1);
+	cairo_show_text(cr,label);
 	cairo_restore(cr);
 }
 
