@@ -13,4 +13,13 @@ struct _GNVDESlirp {
 	GNPort *port;
 };
 
+#define GN_TYPE_VDE_SLIRP_WIDGET gn_vde_slirp_widget_get_type()
+G_DECLARE_FINAL_TYPE(GNVDESlirpWidget,gn_vde_slirp_widget,GN,VDE_SLIRP_WIDGET,GtkGrid)
+
+struct _GNVDESlirpWidget {
+	GtkGrid parent_instance;
+	
+	GNVDESlirp *node;
+};
+
 G_END_DECLS

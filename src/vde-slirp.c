@@ -85,6 +85,7 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	nodeclass->stop = gn_vde_slirp_stop;
 	nodeclass->get_state = gn_vde_slirp_get_state;
 	nodeclass->query_portlist_model = gn_vde_slirp_query_portlist_model;
+	nodeclass->widget_control_type = GN_TYPE_VDE_SLIRP_WIDGET;
 	
 	objclass->dispose = gn_vde_slirp_dispose;
 	objclass->finalize = gn_vde_slirp_finalize;

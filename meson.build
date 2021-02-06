@@ -19,6 +19,7 @@ srcs = [
 	'src/main.c',
 	'src/vde-ns.c',
 	'src/vde-slirp.c',
+	'src/vde-slirp-widget.c',
 	'src/vde-switch.c',
 	'src/vir-domain-list.c',
 	'src/vir-node.c',
