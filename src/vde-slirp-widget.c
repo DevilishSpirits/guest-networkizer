@@ -16,9 +16,30 @@ enum {
 };
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
 
+G_MODULE_EXPORT void gn_vde_slirp_widget_reboot(GNVDESlirpWidget *self)
+{
+	GNNode *node = GN_NODE(self->node);
+	GNNodeClass *node_class = GN_NODE_GET_CLASS(node);
+	node_class->stop(node,NULL);
+	node_class->start(node,NULL);
+}
+static void gn_vde_slirp_widget_need_reboot_changed(GNVDESlirp* slirp, GParamSpec *pspec, GtkInfoBar *infobar)
+{
+	gtk_info_bar_set_revealed(infobar,gn_vde_slirp_need_reboot(slirp));
+}
+
 static void gn_vde_slirp_widget_set_node(GNVDESlirpWidget *self, GNVDESlirp *node)
 {
 	self->node = node;
+	// Bind properties
+	g_object_bind_property(node,"enable-dhcp",self->dhcp_checkbox,"active",G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
+	
+	// Connect signals 
+	g_signal_connect(node,"notify::config",G_CALLBACK(gn_vde_slirp_widget_need_reboot_changed),self->need_reboot_infobar);
+	g_signal_connect(node,"notify::current-config",G_CALLBACK(gn_vde_slirp_widget_need_reboot_changed),self->need_reboot_infobar);
+	
+	// Preshot update signals
+	gn_vde_slirp_widget_need_reboot_changed(node,NULL,self->need_reboot_infobar);
 }
 static void gn_vde_slirp_widget_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
@@ -55,4 +76,6 @@ static void gn_vde_slirp_widget_class_init(GNVDESlirpWidgetClass *klass)
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
 	
 	gtk_widget_class_set_template_from_resource(widget_class,"/me/d_spirits/guest_networkizer/ui/GNVDESlirpWidget");
+	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,need_reboot_infobar);
+	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,dhcp_checkbox);
 }
