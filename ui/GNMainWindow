@@ -89,6 +89,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
+                    <property name="tooltip-markup" translatable="yes">&lt;b&gt;Add a virtual machine&lt;/b&gt;</property>
                     <property name="draw-indicator">False</property>
                     <property name="group">move_node_button</property>
                     <signal name="toggled" handler="gn_main_window_add_vm" swapped="no"/>
@@ -111,6 +112,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
+                    <property name="tooltip-markup" translatable="yes">&lt;b&gt;Add a switch&lt;/b&gt;</property>
                     <property name="draw-indicator">False</property>
                     <property name="group">move_node_button</property>
                     <signal name="toggled" handler="gn_main_window_add_switch" swapped="no"/>
@@ -130,13 +132,22 @@
                 </child>
                 <child>
                   <object class="GtkRadioButton" id="add_nat_button">
-                    <property name="label" translatable="yes">NAT</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
+                    <property name="tooltip-markup" translatable="yes">&lt;b&gt;Add a NAT&lt;/b&gt;
+
+This allow real-world access by creating a subnetwork like a FAI box.</property>
                     <property name="draw-indicator">False</property>
                     <property name="group">move_node_button</property>
                     <signal name="toggled" handler="gn_main_window_add_nat" swapped="no"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="icon-name">network-nat-symbolic</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">True</property>
