@@ -86,6 +86,7 @@ G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *button, GtkWidget *self)
 	g_object_bind_property(GN_NODE_PANEL(self)->node,"label",window,"title",G_BINDING_SYNC_CREATE);
 	gtk_container_add(GTK_CONTAINER(window),self);
 	g_object_unref(self);
+	gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
 	gtk_widget_show(window);
 	
 	// Destroy this button
