@@ -17,6 +17,9 @@ struct _GNNodeClass {
 	gboolean (*query_tooltip)(GNNode* node, int x, int y, gboolean keyboard_mode, GtkTooltip *tooltip, GtkWidget *widget);
 	// Query list of GNPort interface GListModel (must return the same result for the same object)
 	GListModel *(*query_portlist_model)(GNNode* node);
+	// GtkWidget class for the contextual control panel
+	// The 'node' param is set to the instance to bind
+	GType widget_control_type;
 	
 	// Start the node
 	gboolean (*start)(GNNode *node, GError **err);

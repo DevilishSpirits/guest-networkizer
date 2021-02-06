@@ -103,12 +103,21 @@ G_MODULE_EXPORT gboolean gn_node_panel_wireshark(GtkWidget *button, GNNodePanel 
 
 void gn_node_panel_set_node(GNNodePanel *panel, GNNode *node)
 {
+	// Cleanups
 	g_clear_object(&panel->node);
+	g_clear_object(&panel->node_widget);
+	
+	// Set node
 	panel->node = node;
 	panel->node_class = GN_NODE_GET_CLASS(node);
 	
+	// Set the UI
 	gtk_widget_set_visible(GTK_WIDGET(panel->onoff_switch),panel->node_class->start || panel->node_class->stop);
 	gn_node_panel_node_state_changed(panel);
+	if (panel->node_class->widget_control_type) {
+		panel->node_widget = gtk_widget_new(panel->node_class->widget_control_type,"node",node,NULL);
+		gtk_container_add(GTK_CONTAINER(panel),panel->node_widget);
+	}
 }
 
 static void gn_node_panel_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
