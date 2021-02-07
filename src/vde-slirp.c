@@ -123,6 +123,12 @@ static void gn_vde_slirp_port_class_init(GNVDESlirpPortClass *klass)
 }
 G_DEFINE_TYPE (GNVDESlirp,gn_vde_slirp,GN_TYPE_NODE)
 
+static const char* gn_vde_slirp_get_label(GNNode *node)
+{
+	// TODO Make this dynamic
+	static const char* result = "10.0.2.2/24";
+	return result;
+}
 static gboolean gn_vde_slirp_start(GNNode *node, GError **error)
 {
 	GNVDESlirp *self = GN_VDE_SLIRP(node);
@@ -230,6 +236,7 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	GNNodeClass* nodeclass = GN_NODE_CLASS(klass);
 	
+	nodeclass->get_label = gn_vde_slirp_get_label;
 	nodeclass->start = gn_vde_slirp_start;
 	nodeclass->stop = gn_vde_slirp_stop;
 	nodeclass->get_state = gn_vde_slirp_get_state;
