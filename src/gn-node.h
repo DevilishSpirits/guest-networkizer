@@ -31,10 +31,13 @@ struct _GNNodeClass {
 	void (*render)(GNNode* node, cairo_t *cr);
 };
 
+gboolean gn_node_set_state(GNNode* node, GVirDomainState state, GError **error);
+
 GdkPoint *gn_node_position(GNNode* node);
 GNNode *gn_port_get_node(GNPort* port);
 
 void gn_node_notify_label_change(GNNode* node);
+void gn_node_notify_state_change(GNNode* node);
 
 #define GN_NODE_DARK_COLOR_RUNNING     .0,.4,.0
 #define GN_NODE_DARK_COLOR_BLOCKED     .4,.0,.2

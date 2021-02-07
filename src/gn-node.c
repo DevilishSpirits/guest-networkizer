@@ -22,6 +22,7 @@ enum {
 	PROP_NONE,
 	PROP_NET,
 	PROP_LABEL,
+	PROP_STATE,
 	N_PROPERTIES
 };
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
@@ -33,6 +34,9 @@ static void gn_node_set_property(GObject *object, guint property_id, const GValu
 	switch (property_id) {
 		case PROP_NET: {
 			priv->net = GN_NET(g_value_get_object(value));
+		} break;
+		case PROP_STATE: {
+			gn_node_set_state(self,g_value_get_enum(value),NULL);
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -50,6 +54,9 @@ static void gn_node_get_property(GObject *object, guint property_id, GValue *val
 		case PROP_LABEL: {
 			g_value_set_string(value,klass->get_label(self));
 		} break;
+		case PROP_STATE: {
+			g_value_set_enum(value,klass->get_state(self));
+		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
 	}
@@ -57,6 +64,48 @@ static void gn_node_get_property(GObject *object, guint property_id, GValue *val
 void gn_node_notify_label_change(GNNode* node)
 {
 	g_object_notify_by_pspec(G_OBJECT(node),obj_properties[PROP_LABEL]);
+}
+void gn_node_notify_state_change(GNNode* node)
+{
+	g_object_notify_by_pspec(G_OBJECT(node),obj_properties[PROP_STATE]);
+}
+
+gboolean gn_node_set_state(GNNode* node, GVirDomainState state, GError **error)
+{
+	GNNodeClass *node_class = GN_NODE_GET_CLASS(node);
+	GVirDomainState current_state = node_class->get_state(node);
+	switch (current_state) {
+		case GVIR_DOMAIN_STATE_RUNNING:
+		case GVIR_DOMAIN_STATE_BLOCKED:
+		switch (state) {
+			// TODO case GVIR_DOMAIN_STATE_PAUSED
+			case GVIR_DOMAIN_STATE_SHUTOFF: // TODO Cleanly stop the node
+			case GVIR_DOMAIN_STATE_CRASHED:
+				return node_class->stop(node,error);
+			// TODO case GVIR_DOMAIN_STATE_PMSUSPENDED
+			default:return TRUE;
+		} break;
+		
+		//case GVIR_DOMAIN_STATE_PAUSED
+		case GVIR_DOMAIN_STATE_SHUTDOWN:
+		switch (state) {
+			case GVIR_DOMAIN_STATE_RUNNING: // TODO
+			case GVIR_DOMAIN_STATE_PAUSED: //TODO
+				return TRUE;
+			case GVIR_DOMAIN_STATE_CRASHED:
+				return node_class->stop(node,error);
+		} break;
+		case GVIR_DOMAIN_STATE_SHUTOFF:
+		case GVIR_DOMAIN_STATE_CRASHED:
+		switch (state) {
+			case GVIR_DOMAIN_STATE_RUNNING:
+			// TODO case GVIR_DOMAIN_STATE_PAUSED:
+				return node_class->start(node,error);
+			default:return TRUE;
+		} break;
+		//case GVIR_DOMAIN_STATE_PMSUSPENDED
+		default:return TRUE;break;
+	}
 }
 
 static void gn_node_init(GNNode *self)
@@ -107,5 +156,7 @@ static void gn_node_class_init(GNNodeClass *klass)
 		GN_TYPE_NET,G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY);
 	obj_properties[PROP_LABEL] = g_param_spec_string("label", "Label", "Node label",
 		NULL,G_PARAM_READABLE);
+	obj_properties[PROP_STATE] = g_param_spec_enum("state", "State", "Node state",
+		GVIR_TYPE_DOMAIN_STATE,0,G_PARAM_READWRITE|G_PARAM_EXPLICIT_NOTIFY);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
 }

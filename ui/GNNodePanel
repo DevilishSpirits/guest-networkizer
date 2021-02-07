@@ -71,7 +71,7 @@
         <child>
           <object class="GtkSwitch" id="onoff_switch">
             <property name="can-focus">True</property>
-            <signal name="state-set" handler="gn_node_panel_onoff_switch_state_set" swapped="no"/>
+            <signal name="state-set" handler="gtk_true" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>

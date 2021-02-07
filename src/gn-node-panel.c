@@ -13,65 +13,33 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
 static void gn_node_panel_node_state_changed(GNNodePanel *self)
 {
 	GVirDomainState node_state = self->node_class->get_state(self->node);
+	g_warning("gn_node_panel_node_state_changed(%p,state=%d)",self,node_state);
 	switch (node_state) {
-		case GVIR_DOMAIN_STATE_NONE: {
-		} break;
-		case GVIR_DOMAIN_STATE_RUNNING:
-		case GVIR_DOMAIN_STATE_BLOCKED:
-		case GVIR_DOMAIN_STATE_PAUSED:
+		case GVIR_DOMAIN_STATE_RUNNING:case GVIR_DOMAIN_STATE_BLOCKED :
+		case GVIR_DOMAIN_STATE_PAUSED :case GVIR_DOMAIN_STATE_SHUTDOWN:
 		case GVIR_DOMAIN_STATE_PMSUSPENDED:
-		case GVIR_DOMAIN_STATE_SHUTDOWN: {
-			// Machine is on
-			gtk_switch_set_active(self->onoff_switch,TRUE);
-		} break;
-		case GVIR_DOMAIN_STATE_SHUTOFF:
-		case GVIR_DOMAIN_STATE_CRASHED: {
-			// Machine is off
-			gtk_switch_set_active(self->onoff_switch,FALSE);
-		} break;
+			gtk_switch_set_state(self->onoff_switch,TRUE);break; 
+		
+		default:
+			gtk_switch_set_state(self->onoff_switch,FALSE);break; 
 	}
 }
-// FIXME This is drafty and temporary
-G_MODULE_EXPORT gboolean gn_node_panel_onoff_switch_state_set(GtkToggleButton *toggle_button, gboolean state, GNNodePanel *self)
+
+static gboolean gn_node_panel_onoff_switch_active_to_state(GBinding *binding, const GValue *from_value, GValue *to_value, gpointer user_data)
 {
-	GNNode *node = self->node;
-	GNNodeClass *node_class = self->node_class;
-	GVirDomainState node_state = node_class->get_state(node);
-	if (state)
-		switch (node_state) {
-			case GVIR_DOMAIN_STATE_NONE: {
-			} break;
-			case GVIR_DOMAIN_STATE_RUNNING:
-			case GVIR_DOMAIN_STATE_BLOCKED: {
-				// Do nothing. VM is already running
-			} break;
-			//
-			//case GVIR_DOMAIN_STATE_PAUSED
-			//case GVIR_DOMAIN_STATE_SHUTDOWN
-			case GVIR_DOMAIN_STATE_SHUTOFF:
-			case GVIR_DOMAIN_STATE_CRASHED: {
-				// Do nothing. VM is already stopped
-				node_class->start(node,NULL);
-			} break;
-			//case GVIR_DOMAIN_STATE_PMSUSPENDED
-		}
-	else switch (node_state) {
-			case GVIR_DOMAIN_STATE_NONE: {
-			} break;
-			case GVIR_DOMAIN_STATE_RUNNING:
-			case GVIR_DOMAIN_STATE_BLOCKED: {
-				node_class->stop(node,NULL);
-			} break;
-			//
-			//case GVIR_DOMAIN_STATE_PAUSED
-			//case GVIR_DOMAIN_STATE_SHUTDOWN
-			case GVIR_DOMAIN_STATE_SHUTOFF:
-			case GVIR_DOMAIN_STATE_CRASHED: {
-				// Do nothing. VM is already stopped
-			} break;
-			//case GVIR_DOMAIN_STATE_PMSUSPENDED
-		}
-	return FALSE;
+	if (g_value_get_boolean(from_value))
+		g_value_set_enum(to_value,GVIR_DOMAIN_STATE_RUNNING);
+	else g_value_set_enum(to_value,GVIR_DOMAIN_STATE_SHUTOFF);
+}
+static gboolean gn_node_panel_onoff_switch_active_from_state(GBinding *binding, const GValue *from_value, GValue *to_value, gpointer user_data)
+{
+	switch (g_value_get_enum(from_value)) {
+		case GVIR_DOMAIN_STATE_RUNNING:case GVIR_DOMAIN_STATE_BLOCKED :
+			g_value_set_boolean(to_value,TRUE);break; 
+		
+		default:
+			g_value_set_boolean(to_value,FALSE);break; 
+	}
 }
 
 G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *button, GtkWidget *self)
@@ -113,8 +81,16 @@ void gn_node_panel_set_node(GNNodePanel *panel, GNNode *node)
 	panel->node_class = GN_NODE_GET_CLASS(node);
 	
 	// Set the UI
-	gtk_widget_set_visible(GTK_WIDGET(panel->onoff_switch),panel->node_class->start || panel->node_class->stop);
+	if (panel->node_class->start || panel->node_class->stop) {
+		gtk_widget_set_visible(GTK_WIDGET(panel->onoff_switch),TRUE);
+		g_object_bind_property_full(node,"state",panel->onoff_switch,"active",G_BINDING_SYNC_CREATE|G_BINDING_BIDIRECTIONAL,
+			gn_node_panel_onoff_switch_active_from_state,gn_node_panel_onoff_switch_active_to_state,NULL,NULL);
+	} else
+		gtk_widget_set_visible(GTK_WIDGET(panel->onoff_switch),FALSE);
+	
+	g_signal_connect_swapped(node,"notify::state",G_CALLBACK(gn_node_panel_node_state_changed),panel);
 	gn_node_panel_node_state_changed(panel);
+	
 	if (panel->node_class->widget_control_type) {
 		panel->node_widget = gtk_widget_new(panel->node_class->widget_control_type,"node",node,NULL);
 		gtk_container_add(GTK_CONTAINER(panel),panel->node_widget);

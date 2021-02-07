@@ -158,6 +158,7 @@ static gboolean gn_vde_slirp_start(GNNode *node, GError **error)
 	// Cleanup
 	g_free(dns_address);
 	g_ptr_array_unref(argv);
+	gn_node_notify_state_change(node);
 	return self->slirp_process != NULL;
 }
 static gboolean gn_vde_slirp_stop(GNNode *node, GError **error)
@@ -168,6 +169,7 @@ static gboolean gn_vde_slirp_stop(GNNode *node, GError **error)
 		g_object_unref(self->slirp_process);
 		self->slirp_process = NULL;
 	}
+	gn_node_notify_state_change(node);
 	return TRUE;
 }
 static GVirDomainState gn_vde_slirp_get_state(GNNode *node)
