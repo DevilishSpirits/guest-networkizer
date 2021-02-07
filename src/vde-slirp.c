@@ -1,24 +1,28 @@
 #include "vde-slirp.h"
 
-const GNVDESlirpConfig gn_vde_slirp_config_defaults = {
-	TRUE // DHCP is enabled by default
-};
-
 gboolean gn_vde_slirp_config_equal(const GNVDESlirpConfig* a, const GNVDESlirpConfig* b)
 {
-	return memcmp(a,b,sizeof(GNVDESlirpConfig)) == 0;
+	return TRUE
+		&& g_inet_address_equal(a->dns_server,b->dns_server)
+		&& a->enable_dhcp == b->enable_dhcp
+	;
 }
 void gn_vde_slirp_config_copy(const GNVDESlirpConfig* from, GNVDESlirpConfig* to)
 {
-	memcpy(to,from,sizeof(GNVDESlirpConfig));
+	g_clear_object(&to->dns_server);
+	to->dns_server = g_object_ref(from->dns_server);
+	to->enable_dhcp = from->enable_dhcp;
 }
 GNVDESlirpConfig* gn_vde_slirp_config_dup(const GNVDESlirpConfig* config)
 {
-	return memcpy(g_slice_new(GNVDESlirpConfig),config,sizeof(GNVDESlirpConfig));
+	GNVDESlirpConfig* new_config = g_slice_new(GNVDESlirpConfig);
+	gn_vde_slirp_config_copy(config,new_config);
+	return new_config;
 }
 void gn_vde_slirp_config_free(gpointer boxed)
 {
 	GNVDESlirpConfig* self = (GNVDESlirpConfig*)boxed;
+	g_object_unref(self->dns_server);
 	g_free(self);
 }
 G_DEFINE_BOXED_TYPE(GNVDESlirpConfig,gn_vde_slirp_config,gn_vde_slirp_config_dup,gn_vde_slirp_config_free)
@@ -35,10 +39,34 @@ enum {
 	PROP_NONE,
 	PROP_CONFIG,
 	PROP_CURRENT_CONFIG,
+	PROP_DNS_ADDRESS,
 	PROP_ENABLE_DHCP,
 	N_PROPERTIES
 };
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
+
+void gn_vde_slirp_config_set_defaults(GNVDESlirpConfig* config)
+{
+	g_clear_object(&config->dns_server);
+	config->dns_server = g_inet_address_new_from_string(G_PARAM_SPEC_STRING(obj_properties[PROP_DNS_ADDRESS])->default_value);
+	
+	config->enable_dhcp = G_PARAM_SPEC_BOOLEAN(obj_properties[PROP_ENABLE_DHCP])->default_value;
+}
+
+gboolean gn_vde_slirp_set_dns_address(GNVDESlirp *slirp, const char* address)
+{
+	GInetAddress *new_address = g_inet_address_new_from_string(address);
+	if (!new_address)
+		return FALSE;
+	if (g_inet_address_get_family(new_address) != G_SOCKET_FAMILY_IPV4)
+		return FALSE;
+	// Test passed, apply change
+	g_object_unref(slirp->config.dns_server);
+	slirp->config.dns_server = new_address;
+	g_object_notify_by_pspec(G_OBJECT(slirp),obj_properties[PROP_DNS_ADDRESS]);
+	g_object_notify_by_pspec(G_OBJECT(slirp),obj_properties[PROP_CONFIG]);
+	return TRUE;
+}
 
 static void gn_vde_slirp_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
@@ -64,6 +92,9 @@ static void gn_vde_slirp_get_property(GObject *object, guint property_id, GValue
 		} break;
 		case PROP_CURRENT_CONFIG: {
 			g_value_take_boxed(value,gn_vde_slirp_config_dup(&self->current_config));
+		} break;
+		case PROP_DNS_ADDRESS: {
+			g_value_take_string(value,g_inet_address_to_string(self->config.dns_server));
 		} break;
 		case PROP_ENABLE_DHCP: {
 			g_value_set_boolean(value,self->config.enable_dhcp);
@@ -101,16 +132,26 @@ static gboolean gn_vde_slirp_start(GNNode *node, GError **error)
 	// Build argv
 	static char* base_argv[] = {"slirpvde","-q","-s"};
 	static char* option_dhcp = "-D";
+	static char* option_dns = "-N";
 	GPtrArray *argv = g_ptr_array_sized_new(4);
 	for (int i = 0; i < sizeof(base_argv)/sizeof(base_argv[0]); i++)
 		g_ptr_array_add(argv,base_argv[i]);
 	g_ptr_array_add(argv,gn_port_get_hub_sock(self->port));
 	
+	g_ptr_array_add(argv,option_dns);
+	char* dns_address = g_inet_address_to_string(self->current_config.dns_server);
+	g_ptr_array_add(argv,dns_address);
+	
 	if (self->current_config.enable_dhcp)
 		g_ptr_array_add(argv,option_dhcp);
+	
 	// Start
 	g_ptr_array_add(argv,NULL);
 	self->slirp_process = g_subprocess_newv(argv->pdata,0,error);
+	
+	// Cleanup
+	g_free(dns_address);
+	g_ptr_array_unref(argv);
 	return self->slirp_process != NULL;
 }
 static gboolean gn_vde_slirp_stop(GNNode *node, GError **error)
@@ -162,7 +203,7 @@ static void gn_vde_slirp_init(GNVDESlirp *self)
 	self->port = GN_VDE_SLIRP_PORT(g_object_new(gn_vde_slirp_port_get_type(),"node",self,NULL));
 	g_list_store_append(self->ports,self->port);
 	g_object_unref(self->port);
-	gn_vde_slirp_config_copy(&gn_vde_slirp_config_defaults,&self->config);
+	gn_vde_slirp_config_set_defaults(&self->config);
 }
 
 static void gn_vde_slirp_dispose(GObject *gobject)
@@ -205,6 +246,8 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	GN_TYPE_VDE_SLIRP_CONFIG,G_PARAM_READWRITE);
 	obj_properties[PROP_CURRENT_CONFIG] = g_param_spec_boxed("current-config", "Current configuration", "NAT configuration of the running instance",
 	GN_TYPE_VDE_SLIRP_CONFIG,G_PARAM_READABLE);
+	obj_properties[PROP_DNS_ADDRESS] = g_param_spec_string("dns-address", "DNS server", "DNS server address",
+	"10.0.2.3",G_PARAM_READABLE);
 	obj_properties[PROP_ENABLE_DHCP] = g_param_spec_boolean("enable-dhcp", "Enable DHCP", "Enable DHCP server",
 	TRUE,G_PARAM_READWRITE);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);

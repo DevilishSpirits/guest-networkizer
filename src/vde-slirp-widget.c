@@ -28,11 +28,28 @@ static void gn_vde_slirp_widget_need_reboot_changed(GNVDESlirp* slirp, GParamSpe
 	gtk_info_bar_set_revealed(infobar,gn_vde_slirp_need_reboot(slirp));
 }
 
+G_MODULE_EXPORT void gn_vde_slirp_widget_dns_entry_focus_out(GtkEntry *entry, GdkEvent *event, GNVDESlirpWidget* self)
+{
+	if (!gn_vde_slirp_set_dns_address(self->node,gtk_entry_get_text(entry))) {
+		char* address = g_inet_address_to_string(self->node->config.dns_server);
+		gtk_entry_set_text(entry,address);
+		g_free(address);
+	}
+}
+G_MODULE_EXPORT void gn_vde_slirp_widget_dns_changed(GtkEntry *entry, GNVDESlirpWidget* self)
+{
+	GtkStyleContext *context = gtk_widget_get_style_context(GTK_WIDGET(entry));
+	if (gn_vde_slirp_set_dns_address(self->node,gtk_entry_get_text(entry)))
+		gtk_style_context_remove_class(context,"error");
+	else gtk_style_context_add_class(context,"error");
+}
+
 static void gn_vde_slirp_widget_set_node(GNVDESlirpWidget *self, GNVDESlirp *node)
 {
 	self->node = node;
 	// Bind properties
 	g_object_bind_property(node,"enable-dhcp",self->dhcp_checkbox,"active",G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
+	g_object_bind_property(node,"dns-address",self->dns_entry,"text",G_BINDING_SYNC_CREATE);
 	
 	// Connect signals 
 	g_signal_connect(node,"notify::config",G_CALLBACK(gn_vde_slirp_widget_need_reboot_changed),self->need_reboot_infobar);
@@ -77,5 +94,6 @@ static void gn_vde_slirp_widget_class_init(GNVDESlirpWidgetClass *klass)
 	
 	gtk_widget_class_set_template_from_resource(widget_class,"/me/d_spirits/guest_networkizer/ui/GNVDESlirpWidget");
 	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,need_reboot_infobar);
+	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,dns_entry);
 	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,dhcp_checkbox);
 }
