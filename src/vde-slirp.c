@@ -135,6 +135,27 @@ gboolean gn_vde_slirp_need_reboot(const GNVDESlirp* slirp)
 	return slirp->slirp_process && !gn_vde_slirp_config_equal(&slirp->config,&slirp->current_config);
 }
 
+static void gn_vde_slirp_render(GNNode* node, cairo_t *cr)
+{
+	// Get real pixel size
+	double picx = 1;
+	double picy = 0;
+	cairo_user_to_device_distance(cr,&picx,&picy);
+	// Render computer screen
+	// TODO Cache icons
+	GtkIconInfo *icon_info = gtk_icon_theme_lookup_icon(gtk_icon_theme_get_default(),"network-nat",picx,0);
+	GdkPixbuf *pixbuf = gtk_icon_info_load_icon(icon_info,NULL);
+	g_object_unref(icon_info);
+	gdk_cairo_set_source_pixbuf(cr,pixbuf,0,0);
+	g_object_unref(pixbuf);
+	cairo_matrix_t matrix;
+	cairo_matrix_init_scale(&matrix,picx,picx);
+	cairo_matrix_translate(&matrix,.5,.5);
+	cairo_pattern_set_matrix(cairo_get_source(cr),&matrix);
+	cairo_rectangle(cr,-.5,-.5,1,1);
+	cairo_fill(cr);
+}
+
 static void gn_vde_slirp_init(GNVDESlirp *self)
 {
 	self->ports = g_list_store_new(GN_TYPE_PORT);
@@ -171,6 +192,7 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	nodeclass->start = gn_vde_slirp_start;
 	nodeclass->stop = gn_vde_slirp_stop;
 	nodeclass->get_state = gn_vde_slirp_get_state;
+	nodeclass->render = gn_vde_slirp_render;
 	nodeclass->query_portlist_model = gn_vde_slirp_query_portlist_model;
 	nodeclass->widget_control_type = GN_TYPE_VDE_SLIRP_WIDGET;
 	
