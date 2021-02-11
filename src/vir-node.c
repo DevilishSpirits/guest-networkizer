@@ -162,6 +162,12 @@ static void gn_vir_node_set_property(GObject *object, guint property_id, const G
 			g_object_get_property(G_OBJECT(self->domain),"handle",&domain_handle_value);
 			self->domain_handle = g_value_get_boxed(&domain_handle_value);
 			g_value_unset(&domain_handle_value);
+			// Connect state change notifications
+			g_signal_connect_object(self->domain,"pmsuspended",G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+			g_signal_connect_object(self->domain,"resumed"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+			g_signal_connect_object(self->domain,"started"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+			g_signal_connect_object(self->domain,"stopped"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+			g_signal_connect_object(self->domain,"suspended"  ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
