@@ -33,4 +33,4 @@ deps = [
 	dep_virtqemu,
 ]
 
-executable('guest-networkizer', srcs, export_dynamic: true, dependencies: deps)
+executable('guest-networkizer', srcs, export_dynamic: true, install: true, dependencies: deps)
