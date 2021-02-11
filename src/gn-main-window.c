@@ -231,6 +231,8 @@ G_MODULE_EXPORT gboolean gn_main_window_button_release(GtkWidget *widget, GdkEve
 			g_ptr_array_add(self->net->nodes,new_node);
 			if (self->new_node_once)
 				gn_main_window_reset_new_object(self);
+			// Redraw upon state change
+			g_signal_connect_object(new_node,"notify::state",G_CALLBACK(gtk_widget_queue_draw),widget,G_CONNECT_SWAPPED);
 			}
 		} break;
 	}
