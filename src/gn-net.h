@@ -30,4 +30,6 @@ GNNet *gn_node_get_net(GNNode* node);
 void gn_net_render(GNNet *self, cairo_t *cr, GtkStyleContext *style_context);
 GNNetObjectType gn_net_whats_here(GNNet *self, GNNetObject *results, gdouble x, gdouble y);
 
+void gn_net_state_all(GNNet *self, GVirDomainState state);
+
 G_END_DECLS

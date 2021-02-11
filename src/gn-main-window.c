@@ -94,6 +94,15 @@ G_MODULE_EXPORT void gn_main_window_delete_mode(GtkToggleButton *toggle_button, 
 	self->new_node_type = GN_WINDOW_MODE_DELETE;
 }
 
+G_MODULE_EXPORT void gn_main_window_start_all(GtkWidget *widget, GNMainWindow *self)
+{
+	gn_net_state_all(self->net,GVIR_DOMAIN_STATE_RUNNING);
+}
+G_MODULE_EXPORT void gn_main_window_shutdown_all(GtkWidget *widget, GNMainWindow *self)
+{
+	gn_net_state_all(self->net,GVIR_DOMAIN_STATE_SHUTOFF);
+}
+
 G_MODULE_EXPORT gboolean gn_main_window_button_press(GtkWidget *widget, GdkEventButton *event, GNMainWindow *self)
 {
 	const double view_scale = gn_main_window_view_scale(self);

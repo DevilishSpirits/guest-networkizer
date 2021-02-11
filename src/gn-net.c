@@ -3,6 +3,15 @@
 
 G_DEFINE_TYPE (GNNet,gn_net,G_TYPE_OBJECT)
 
+static void gn_net_state_all_callback(gpointer data, gpointer state)
+{
+	gn_node_set_state(GN_NODE(data),*(GVirDomainState*)state,NULL);
+}
+void gn_net_state_all(GNNet *self, GVirDomainState state)
+{
+	g_ptr_array_foreach(self->nodes,gn_net_state_all_callback,&state);
+}
+
 static void gn_net_init(GNNet *self)
 {
 	self->nodes = g_ptr_array_new_with_free_func(g_object_unref);
