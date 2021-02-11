@@ -13,7 +13,6 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
 static void gn_node_panel_node_state_changed(GNNodePanel *self)
 {
 	GVirDomainState node_state = self->node_class->get_state(self->node);
-	g_warning("gn_node_panel_node_state_changed(%p,state=%d)",self,node_state);
 	switch (node_state) {
 		case GVIR_DOMAIN_STATE_RUNNING:case GVIR_DOMAIN_STATE_BLOCKED :
 		case GVIR_DOMAIN_STATE_PAUSED :case GVIR_DOMAIN_STATE_SHUTDOWN:
@@ -73,8 +72,10 @@ G_MODULE_EXPORT gboolean gn_node_panel_wireshark(GtkWidget *button, GNNodePanel 
 void gn_node_panel_set_node(GNNodePanel *panel, GNNode *node)
 {
 	// Cleanups
-	g_clear_object(&panel->node);
-	g_clear_object(&panel->node_widget);
+	if (panel->node) {
+		g_object_unref(panel->node);
+		g_clear_object(&panel->node_widget);
+	}
 	
 	// Set node
 	panel->node = node;
@@ -88,7 +89,7 @@ void gn_node_panel_set_node(GNNodePanel *panel, GNNode *node)
 	} else
 		gtk_widget_set_visible(GTK_WIDGET(panel->onoff_switch),FALSE);
 	
-	g_signal_connect_swapped(node,"notify::state",G_CALLBACK(gn_node_panel_node_state_changed),panel);
+	g_signal_connect_object(node,"notify::state",G_CALLBACK(gn_node_panel_node_state_changed),panel,G_CONNECT_SWAPPED);
 	gn_node_panel_node_state_changed(panel);
 	
 	if (panel->node_class->widget_control_type) {
@@ -133,7 +134,8 @@ static void gn_node_panel_init(GNNodePanel *self)
 }
 static void gn_node_panel_dispose(GNNodePanel *self)
 {
-	g_clear_object(&self->node);
+	if (self->node)
+		g_object_unref(self->node);
 }
 static void gn_node_panel_class_init(GNNodePanelClass *klass)
 {
