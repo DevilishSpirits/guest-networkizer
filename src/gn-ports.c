@@ -33,8 +33,6 @@ const char* gn_port_get_hub_sock(GNPort* port)
 static void gn_port_init(GNPort *self)
 {
 	GNPortPrivate *priv = gn_port_get_instance_private(self);
-	priv->hub_sock = g_dir_make_tmp (NULL,/* TODO GError **error */NULL);
-	priv->hub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDIN_PIPE,/* TODO GError **error */NULL,"vde_switch","-x","-s",priv->hub_sock,NULL);
 }
 
 static void gn_port_dispose(GObject *gobject)
@@ -48,8 +46,13 @@ static void gn_port_finalize(GObject *gobject)
 {
 	GNPort *self = GN_PORT(gobject);
 	GNPortPrivate *priv = gn_port_get_instance_private(self);
-	g_subprocess_force_exit(priv->hub);
-	g_object_unref(priv->hub);
+	// Destroy the hub
+	if (priv->hub) {
+		g_subprocess_force_exit(priv->hub);
+		g_subprocess_wait(priv->hub,NULL,NULL);
+		g_object_unref(priv->hub);
+		g_rmdir(priv->hub_sock);
+	}
 	g_free(priv->hub_sock);
 	G_OBJECT_CLASS(gn_port_parent_class)->finalize(gobject);
 }
@@ -61,6 +64,9 @@ static void gn_port_set_property(GObject *object, guint property_id, const GValu
 	switch (property_id) {
 		case PROP_NODE: {
 			priv->node = GN_NODE(g_value_get_object(value));
+			// Create hub
+			priv->hub_sock = gn_node_mkdtemp(priv->node,"port",/* TODO GError **error */NULL);
+			priv->hub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDIN_PIPE,/* TODO GError **error */NULL,"vde_switch","-x","-s",priv->hub_sock,NULL);
 		} break;
 		case PROP_LINK: {
 			gn_port_set_link(self,g_value_get_object(value),NULL);

@@ -1,9 +1,11 @@
 #include "gn-node.h"
 #include "gn-net.h"
+#include <glib/gstdio.h>
 
 typedef struct _GNNodePrivate {
 	GdkPoint position;
 	GNNet   *net;
+	char*    tmp_dir;
 } GNNodePrivate;
 G_DEFINE_TYPE_WITH_PRIVATE(GNNode,gn_node,G_TYPE_OBJECT)
 
@@ -16,6 +18,38 @@ GNNet *gn_node_get_net(GNNode* node)
 {
 	GNNodePrivate *priv = gn_node_get_instance_private(node);
 	return priv->net;
+}
+
+const char* gn_node_tmp_dir(GNNode* node, GError **error)
+{
+	GNNodePrivate *priv = gn_node_get_instance_private(node);
+	if (!priv->tmp_dir)
+		priv->tmp_dir = g_dir_make_tmp(NULL,error);
+	return priv->tmp_dir;
+}
+const char* gn_node_mkdtemp(GNNode* node, const char* tmpl, GError **error)
+{
+	const char* tmp_dir = gn_node_tmp_dir(node,error);
+	if (!tmp_dir)
+		return NULL;
+	
+	// Build path (<node_tmp>/<tmpl>-XXXXXX)
+	const int tmp_dir_len = strlen(tmp_dir);
+	const int tmpl_len = strlen(tmpl);
+	const char suffix[] = "-XXXXXX\0";
+	char* new_dir = malloc(tmp_dir_len+sizeof('/')+tmpl_len+sizeof(suffix));
+	// TODO Check for new_dir != NULL
+	memcpy(new_dir,tmp_dir,tmp_dir_len);
+	new_dir[tmp_dir_len] = '/';
+	memcpy(&new_dir[tmp_dir_len+1],tmpl,tmpl_len);
+	memcpy(&new_dir[tmp_dir_len+1+tmpl_len],suffix,sizeof(suffix));
+	
+	char* result = g_mkdtemp(new_dir);
+	if (!result) {
+		g_set_error(error,G_IO_ERROR,g_io_error_from_errno(errno),"Failed to create temporary directory \"%s\": %s",new_dir,g_strerror(errno));
+		g_free(new_dir);
+	}
+	return result;
 }
 
 enum {
@@ -119,6 +153,13 @@ static void gn_node_dispose(GObject *gobject)
 
 static void gn_node_finalize(GObject *gobject)
 {
+	GNNode *self = GN_NODE(gobject);
+	GNNodePrivate *priv = gn_node_get_instance_private(self);
+	// Remove tmp
+	if (priv->tmp_dir) {
+		g_rmdir(priv->tmp_dir);
+		g_free(priv->tmp_dir);
+	}
 	G_OBJECT_CLASS(gn_node_parent_class)->finalize(gobject);
 }
 

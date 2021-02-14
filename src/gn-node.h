@@ -32,6 +32,8 @@ struct _GNNodeClass {
 };
 
 gboolean gn_node_set_state(GNNode* node, GVirDomainState state, GError **error);
+const char* gn_node_tmp_dir(GNNode* node, GError **error);
+const char* gn_node_mkdtemp(GNNode* node, const char* tmpl, GError **error);
 
 GdkPoint *gn_node_position(GNNode* node);
 GNNode *gn_port_get_node(GNPort* port);
