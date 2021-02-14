@@ -8,6 +8,7 @@ static gboolean gn_main_window_add_link_dialog_draw_logo(GtkWidget *widget, cair
 	gtk_widget_get_allocated_size(widget,&allocation,NULL);
 	double scale = allocation.width < allocation.height ? allocation.width : allocation.height;
 	cairo_scale(cr,scale,scale);
+	cairo_translate(cr,.5,.5);
 	GN_NODE_GET_CLASS(node)->render(node,cr);
 	return TRUE;
 }
