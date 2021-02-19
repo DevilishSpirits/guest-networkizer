@@ -67,6 +67,7 @@ struct _GNMainWindow
 	GtkListBox    *add_link_ports_b_listbox;
 	
 	GtkPopover     *context_node_popover;
+	GtkDrawingArea *workspace_drawingarea;
 };
 
 void gn_main_window_add_link_dialog_run(GNMainWindow *self, GNNode* node_a, GNNode* node_b);

@@ -309,6 +309,7 @@ static void gn_main_window_class_init(GNMainWindowClass *klass)
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,add_link_ports_b_listbox);
 	
 	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,context_node_popover);
+	gtk_widget_class_bind_template_child(widget_class,GNMainWindow,workspace_drawingarea);
 	
 	objclass->dispose = gn_main_window_dispose;
 	objclass->finalize = gn_main_window_finalize;
