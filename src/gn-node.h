@@ -29,6 +29,10 @@ struct _GNNodeClass {
 	GVirDomainState (*get_state)(GNNode *node);
 	// Render a node, (1×1 rectangle with center at 0×0)
 	void (*render)(GNNode* node, cairo_t *cr);
+	
+	// List of properties to read/write in files
+	// Array of GParamSpec, the array own a reference to them and can be reffed
+	GPtrArray *file_properties;
 };
 
 gboolean gn_node_set_state(GNNode* node, GVirDomainState state, GError **error);

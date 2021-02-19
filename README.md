@@ -14,6 +14,8 @@ To use it create your VMs in the virt-manager (or any libvirt client), remove ne
 
 **This link won't break** Restart the software to delete links
 
+**CAUTION!!!** The file format is a mess and **not stable**
+
 ## Installation 
 
 This project use the [Meson Build System](https://mesonbuild.com/).

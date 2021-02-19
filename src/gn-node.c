@@ -200,4 +200,5 @@ static void gn_node_class_init(GNNodeClass *klass)
 	obj_properties[PROP_STATE] = g_param_spec_enum("state", "State", "Node state",
 		GVIR_TYPE_DOMAIN_STATE,0,G_PARAM_READWRITE|G_PARAM_EXPLICIT_NOTIFY);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
+	klass->file_properties = g_ptr_array_new_with_free_func((GDestroyNotify)g_param_spec_unref);
 }
