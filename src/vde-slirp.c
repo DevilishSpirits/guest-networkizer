@@ -75,6 +75,9 @@ static void gn_vde_slirp_set_property(GObject *object, guint property_id, const 
 		case PROP_CONFIG: {
 			gn_vde_slirp_config_copy(g_value_get_boxed(value),&self->config);
 		} break;
+		case PROP_DNS_ADDRESS: {
+			gn_vde_slirp_set_dns_address(self,g_value_get_string(value));
+		} break;
 		case PROP_ENABLE_DHCP: {
 			self->config.enable_dhcp = g_value_get_boolean(value);
 			g_object_notify_by_pspec(G_OBJECT(self),obj_properties[PROP_CONFIG]);
@@ -256,7 +259,7 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	obj_properties[PROP_CURRENT_CONFIG] = g_param_spec_boxed("current-config", "Current configuration", "NAT configuration of the running instance",
 	GN_TYPE_VDE_SLIRP_CONFIG,G_PARAM_READABLE);
 	obj_properties[PROP_DNS_ADDRESS] = g_param_spec_string("dns-address", "DNS server", "DNS server address",
-	"10.0.2.3",G_PARAM_READABLE);
+	"10.0.2.3",G_PARAM_READWRITE);
 	obj_properties[PROP_ENABLE_DHCP] = g_param_spec_boolean("enable-dhcp", "Enable DHCP", "Enable DHCP server",
 	TRUE,G_PARAM_READWRITE);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
