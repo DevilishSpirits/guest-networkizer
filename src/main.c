@@ -1,5 +1,8 @@
 #include "gn-main-window.h"
 #include "vir-domain-list.h"
+#include "vde-slirp.h"
+#include "vde-switch.h"
+#include "vir-node.h"
 #include <libvirt-gobject/libvirt-gobject.h>
 #include <gtk/gtk.h>
 
@@ -29,6 +32,9 @@ static void app_activate(GApplication *application, gpointer user_data)
 
 int main(int argc, char** argv)
 {
+	g_type_class_ref(GN_TYPE_VDE_SLIRP);
+	g_type_class_ref(GN_TYPE_VDE_SWITCH);
+	g_type_class_ref(GN_TYPE_VIR_NODE);
 	app = gtk_application_new("me.d_spirits.guest_networkizer", G_APPLICATION_NON_UNIQUE);
 	g_signal_connect(app,"startup",G_CALLBACK(app_startup),NULL);
 	g_signal_connect(app,"activate",G_CALLBACK(app_activate),NULL);

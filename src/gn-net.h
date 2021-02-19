@@ -30,6 +30,7 @@ GNNet *gn_node_get_net(GNNode* node);
 void gn_net_render(GNNet *self, cairo_t *cr, GtkStyleContext *style_context);
 GNNetObjectType gn_net_whats_here(GNNet *self, GNNetObject *results, gdouble x, gdouble y);
 gboolean gn_net_save(GNNet *net, GOutputStream* stream, GCancellable *cancellable, GError **error);
+GNNet* gn_net_load(GInputStream *stream, GCancellable *cancellable, GError **error);
 
 void gn_net_state_all(GNNet *self, GVirDomainState state);
 

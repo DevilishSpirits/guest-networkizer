@@ -13,6 +13,7 @@ srcs = [
 	'src/gn-main-window.c',
 	'src/gn-main-window-add-link-dialog.c',
 	'src/gn-net.c',
+	'src/gn-net-load.c',
 	'src/gn-net-save.c',
 	'src/gn-node.c',
 	'src/gn-node-panel.c',
