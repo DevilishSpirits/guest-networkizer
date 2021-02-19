@@ -2,6 +2,21 @@
 <!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
+  <object class="GtkFileChooserNative">
+    <property name="local-only">False</property>
+  </object>
+  <object class="GtkMenu" id="file_context_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Save as...</property>
+        <signal name="activate" handler="gn_main_window_save_as" swapped="yes"/>
+      </object>
+    </child>
+  </object>
   <template class="GNMainWindow" parent="GtkApplicationWindow">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -26,6 +41,7 @@
         <property name="show-close-button">True</property>
         <child>
           <object class="GtkButtonBox">
+            <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="layout-style">expand</property>
             <child>
@@ -42,10 +58,33 @@
               </packing>
             </child>
             <child>
+              <object class="GtkButton">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-markup" translatable="yes">&lt;b&gt;Save&lt;/b&gt;</property>
+                <signal name="clicked" handler="gn_main_window_save" swapped="yes"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">document-save-symbolic</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkMenuButton">
+                <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="focus-on-click">False</property>
                 <property name="receives-default">True</property>
+                <property name="popup">file_context_menu</property>
                 <child>
                   <object class="GtkImage">
                     <property name="visible">True</property>
@@ -57,7 +96,7 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -298,7 +337,7 @@ This allow real-world access by creating a subnetwork like a FAI box.</property>
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
@@ -529,12 +568,5 @@ They will automatically appear here but not their network interface, use this ap
     <child>
       <placeholder/>
     </child>
-  </object>
-  <object class="GtkMenu">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-  </object>
-  <object class="GtkFileChooserNative">
-    <property name="local-only">False</property>
   </object>
 </interface>

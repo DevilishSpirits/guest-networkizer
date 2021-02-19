@@ -15,6 +15,8 @@ struct _GNMainWindow
 {
 	GtkApplicationWindow parent_instance;
 	
+	GFile *save_file;
+	
 	GNNet *net;
 	double view_x;
 	double view_y;

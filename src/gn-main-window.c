@@ -40,6 +40,29 @@ static void gn_main_window_reset_new_object(GNMainWindow *self)
 	g_array_set_size(self->new_node_properties_values,1);
 }
 
+G_MODULE_EXPORT void gn_main_window_save_as(GNMainWindow *self);
+G_MODULE_EXPORT void gn_main_window_save(GNMainWindow *self)
+{
+	if (self->save_file) {
+		GCancellable *cancellable = g_cancellable_new();
+		GOutputStream *stream = G_OUTPUT_STREAM(g_file_replace(self->save_file,NULL,FALSE,0,cancellable,NULL));
+		gn_net_save(self->net,stream,cancellable,/* TODO GError **error */NULL);
+		g_output_stream_close(stream,cancellable,/* TODO GError **error */NULL);
+		g_object_unref(cancellable);
+		g_object_unref(stream);
+	} else return gn_main_window_save_as(self);
+}
+G_MODULE_EXPORT void gn_main_window_save_as(GNMainWindow *self)
+{
+	GtkFileChooserNative *dialog = gtk_file_chooser_native_new(NULL,GTK_WINDOW(self),GTK_FILE_CHOOSER_ACTION_SAVE,NULL,NULL);
+	if (gtk_native_dialog_run(GTK_NATIVE_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		g_clear_object(&self->save_file);
+		self->save_file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
+		g_object_unref(dialog);
+		return gn_main_window_save(self);
+	} else g_object_unref(dialog);
+}
+
 G_MODULE_EXPORT void gn_main_window_virt_listbox_row_activated(GtkListBox *box, GtkListBoxRow *row, GNMainWindow *self)
 {
 	gn_main_window_reset_new_object(self);
@@ -260,6 +283,7 @@ static void gn_main_window_dispose(GObject *gobject)
 static void gn_main_window_finalize(GObject *gobject)
 {
 	GNMainWindow *self = GN_MAIN_WINDOW(gobject);
+	g_clear_object(&self->save_file);
 	g_object_unref(self->net);
 	G_OBJECT_CLASS(gn_main_window_parent_class)->finalize(gobject);
 }
