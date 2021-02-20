@@ -16,11 +16,11 @@ char* gn_vir_node_port_get_mac_address(GNVirNodePort *port)
 }
 static guint8 gn_vir_node_port_read_mac_address_digit(char digit)
 {
-	if ((digit >= '0')||(digit <= '9'))
+	if ((digit >= '0')&&(digit <= '9'))
 		return digit - '0';
-	else if ((digit >= 'a')||(digit <= 'f'))
+	else if ((digit >= 'a')&&(digit <= 'f'))
 		return digit - 'a' + 0xa;
-	else if ((digit >= 'A')||(digit <= 'F'))
+	else if ((digit >= 'A')&&(digit <= 'F'))
 		return digit - 'A' + 0xA;
 	else return 0xFF; // Bad char
 }
@@ -35,7 +35,7 @@ gboolean gn_vir_node_port_set_mac_address(GNVirNodePort *port, const char* mac)
 		char low_digit = gn_vir_node_port_read_mac_address_digit(mac[3*i+1]);
 		if (low_digit == 0xff)
 			return FALSE;
-		if (mac[3*i+2] != ':')
+		if ((mac[3*i+2] != (i == 5 ? '\0' : ':')))
 			return FALSE;
 		// Field is okay, write it
 		new_mac[i] = (high_digit << 4) | low_digit;
