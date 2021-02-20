@@ -40,6 +40,28 @@ static void gn_main_window_reset_new_object(GNMainWindow *self)
 	g_array_set_size(self->new_node_properties_values,1);
 }
 
+G_MODULE_EXPORT void gn_main_window_open(GNMainWindow *self)
+{
+	GtkFileChooserNative *dialog = gtk_file_chooser_native_new(NULL,GTK_WINDOW(self),GTK_FILE_CHOOSER_ACTION_OPEN,NULL,NULL);
+	if (gtk_native_dialog_run(GTK_NATIVE_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
+		GFileInputStream *stream = g_file_read(file,NULL,NULL);
+		if (stream) {
+			GNNet *new_net = gn_net_load(G_INPUT_STREAM(stream),NULL,NULL);
+			if (new_net) {
+				g_object_unref(self->net);
+				self->net = new_net;
+				self->save_file = g_object_ref(file);
+				// Redraw upon state change
+				for (int i = 0; i < self->net->nodes->len; i++)
+					g_signal_connect_object(GN_NODE(g_ptr_array_index(self->net->nodes,i)),"notify::state",G_CALLBACK(gtk_widget_queue_draw),self->workspace_drawingarea,G_CONNECT_SWAPPED);
+			}
+			g_object_unref(stream);
+		}
+		g_object_unref(file);
+	}
+	g_object_unref(dialog);
+}
 G_MODULE_EXPORT void gn_main_window_save_as(GNMainWindow *self);
 G_MODULE_EXPORT void gn_main_window_save(GNMainWindow *self)
 {

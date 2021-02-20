@@ -46,10 +46,19 @@
             <property name="layout-style">expand</property>
             <child>
               <object class="GtkButton">
-                <property name="label" translatable="yes">_Open</property>
+                <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-markup" translatable="yes">&lt;b&gt;Open a network&lt;/b&gt;</property>
                 <property name="use-underline">True</property>
+                <signal name="clicked" handler="gn_main_window_open" swapped="yes"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">document-open-symbolic</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">True</property>
