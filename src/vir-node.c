@@ -1,16 +1,78 @@
 #include "vir-node.h"
 
-G_DECLARE_FINAL_TYPE(GNVirNodePort,gn_vir_node_port,GN,VIR_NODE_PORT,GNPort)
-struct _GNVirNodePort {
-	GNPort parent_instance;
-	
-	char *qemu_driver;
-	char *qemu_id;
-	guint8 mac[8];
-};
 G_DEFINE_TYPE (GNVirNodePort,gn_vir_node_port,GN_TYPE_PORT)
 
 static GVirDomainState gn_vir_node_get_state(GNNode *node);
+enum {
+	PORT_PROP_NONE,
+	PORT_PROP_DEVICE,
+	PORT_PROP_MAC_ADDRESS,
+	PORT_N_PROPERTIES
+};
+static GParamSpec *port_obj_properties[PORT_N_PROPERTIES] = {NULL,};
+char* gn_vir_node_port_get_mac_address(GNVirNodePort *port)
+{
+	return g_strdup_printf("%02x:%02x:%02x:%02x:%02x:%02x",port->mac[0],port->mac[1],port->mac[2],port->mac[3],port->mac[4],port->mac[5]);
+}
+static guint8 gn_vir_node_port_read_mac_address_digit(char digit)
+{
+	if ((digit >= '0')||(digit <= '9'))
+		return digit - '0';
+	else if ((digit >= 'a')||(digit <= 'f'))
+		return digit - 'a' + 0xa;
+	else if ((digit >= 'A')||(digit <= 'F'))
+		return digit - 'A' + 0xA;
+	else return 0xFF; // Bad char
+}
+gboolean gn_vir_node_port_set_mac_address(GNVirNodePort *port, const char* mac)
+{
+	guint8 new_mac[6];
+	for (int i = 0; i < 6; i++) {
+		// Check and preprocess digits
+		char high_digit = gn_vir_node_port_read_mac_address_digit(mac[3*i+0]);
+		if (high_digit == 0xff)
+			return FALSE;
+		char low_digit = gn_vir_node_port_read_mac_address_digit(mac[3*i+1]);
+		if (low_digit == 0xff)
+			return FALSE;
+		if (mac[3*i+2] != ':')
+			return FALSE;
+		// Field is okay, write it
+		new_mac[i] = (high_digit << 4) | low_digit;
+	}
+	memcpy(&port->mac,&new_mac,sizeof(new_mac));
+	g_object_notify_by_pspec(G_OBJECT(port),port_obj_properties[PORT_PROP_MAC_ADDRESS]);
+	return TRUE;
+}
+static void gn_vir_node_port_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+	GNVirNodePort *self = GN_VIR_NODE_PORT(object);
+	switch (property_id) {
+		case PORT_PROP_DEVICE: {
+			g_free(self->device);
+			self->device = g_value_dup_string(value);
+		} break;
+		case PORT_PROP_MAC_ADDRESS: {
+			gn_vir_node_port_set_mac_address(self,g_value_get_string(value));
+		} break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
+	}
+}
+static void gn_vir_node_port_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+	GNVirNodePort *self = GN_VIR_NODE_PORT(object);
+	switch (property_id) {
+		case PORT_PROP_DEVICE: {
+			g_value_set_string(value,self->device);
+		} break;
+		case PORT_PROP_MAC_ADDRESS: {
+			g_value_take_string(value,gn_vir_node_port_get_mac_address(self));
+		} break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
+	}
+}
 
 static gboolean gn_vir_node_perform_qemu(GNVirNodePort *self, const char* cmd, char** result, GError** error)
 {
@@ -62,7 +124,7 @@ static gboolean gn_vir_node_port_qemu_init(GNVirNodePort *self, GError** error)
 	if (!result)
 		return FALSE;
 	// Create device
-	cmd = g_strdup_printf("device_add %s,id=%s,netdev=%s,mac=%02x:%02x:%02x:%02x:%02x:%02x",self->qemu_driver,self->qemu_id,self->qemu_id,self->mac[0],self->mac[1],self->mac[2],self->mac[3],self->mac[4],self->mac[5]);
+	cmd = g_strdup_printf("device_add %s,id=%s,netdev=%s,mac=%02x:%02x:%02x:%02x:%02x:%02x",self->device,self->qemu_id,self->qemu_id,self->mac[0],self->mac[1],self->mac[2],self->mac[3],self->mac[4],self->mac[5]);
 	result = gn_vir_node_perform_qemu(self,cmd,NULL,error);
 	g_free(cmd);
 	if (!result)
@@ -71,6 +133,23 @@ static gboolean gn_vir_node_port_qemu_init(GNVirNodePort *self, GError** error)
 		return TRUE; // Already has link
 	// Remove carrier - TODO Do that in a atomic way
 	return gn_vir_node_port_qemu_set_carrier(self,FALSE,error);
+}
+static gboolean gn_vir_node_port_qemu_clean(GNVirNodePort *self, GError** error)
+{
+	GNPort *port = GN_PORT(self);
+	char* cmd;
+	gboolean result;
+	// Create netdev
+	cmd = g_strdup_printf("netdev_del %s",self->qemu_id);
+	result = gn_vir_node_perform_qemu(self,cmd,NULL,error);
+	g_free(cmd);
+	if (!result)
+		return FALSE;
+	// Create device
+	cmd = g_strdup_printf("device_del %s",self->qemu_id);
+	result = gn_vir_node_perform_qemu(self,cmd,NULL,error);
+	g_free(cmd);
+	return result;
 }
 
 static void gn_vir_node_port_qemu_started(GVirDomain *gvirdomain, GNVirNodePort *self)
@@ -88,7 +167,7 @@ static void gn_vir_node_port_init(GNVirNodePort *self)
 		instance_id = abs(g_get_monotonic_time());
 	
 	self->qemu_id = g_strdup_printf("gn-vde-%d-%d",instance_id,next_qemu_id++);
-	self->qemu_driver = g_strdup("virtio-net-pci");
+	self->device = g_value_dup_string(g_param_spec_get_default_value(port_obj_properties[PORT_PROP_DEVICE]));
 	// Set a pseudo-random MAC
 	static guint8 rand_mac[3] = {1,0,0};
 	if (rand_mac[0] == 255) {
@@ -110,8 +189,9 @@ static void gn_vir_node_port_init(GNVirNodePort *self)
 static void gn_vir_node_port_finalize(GObject *gobject)
 {
 	GNVirNodePort *self = GN_VIR_NODE_PORT(gobject);
+	gn_vir_node_port_qemu_clean(self,NULL);
 	g_free(self->qemu_id);
-	g_free(self->qemu_driver);
+	g_free(self->device);
 	G_OBJECT_CLASS(gn_vir_node_port_parent_class)->finalize(gobject);
 }
 static void gn_vir_node_port_class_init(GNVirNodePortClass *klass)
@@ -121,12 +201,36 @@ static void gn_vir_node_port_class_init(GNVirNodePortClass *klass)
 	
 	port_class->set_carrier = gn_vir_node_port_qemu_set_carrier;
 	
+	objclass->get_property = gn_vir_node_port_get_property;
+	objclass->set_property = gn_vir_node_port_set_property;
 	//objclass->dispose = gn_vir_node_port_dispose;
 	objclass->finalize = gn_vir_node_port_finalize;
+	
+	port_obj_properties[PORT_PROP_DEVICE] = g_param_spec_string("device", "Device model", "NIC model name",
+		"virtio-net-pci",G_PARAM_READWRITE);
+	port_obj_properties[PORT_PROP_MAC_ADDRESS] = g_param_spec_string("mac-address", "MAC address", "NIC MAC address",
+		NULL,G_PARAM_READWRITE|G_PARAM_EXPLICIT_NOTIFY);
+	g_object_class_install_properties(objclass,PORT_N_PROPERTIES,port_obj_properties);
 }
 G_DEFINE_TYPE (GNVirNode,gn_vir_node,GN_TYPE_NODE)
 
 extern GVirConnection *vir_connection; // FIXME Dirty hard-coded reference
+
+void gn_vir_node_port_delete(GNVirNodePort *port)
+{
+	GListStore *store = GN_VIR_NODE(gn_port_get_node(GN_PORT(port)))->ports;
+	guint position;
+	if (g_list_store_find(store,port,&position))
+		g_list_store_remove(store,position);
+}
+void gn_vir_node_port_add(GNVirNode *self)
+{
+	GNVirNodePort *port = g_object_new(gn_vir_node_port_get_type(),"node",self,NULL);
+	g_signal_connect_object(self->domain,"started",G_CALLBACK(gn_vir_node_port_qemu_started),port,0);
+	gn_vir_node_port_qemu_init(port,NULL);
+	g_list_store_append(self->ports,port);
+	g_object_unref(port);
+}
 
 static void gn_vir_node_screenshot_to_image_at_scale_async(GNVirNode *self, int width, int height, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
@@ -264,10 +368,6 @@ static GListModel *gn_vir_node_query_portlist_model(GNNode* node)
 static void gn_vir_node_constructed(GObject *gobject)
 {
 	GNVirNode *self = GN_VIR_NODE(gobject);
-	GNVirNodePort *port = g_object_new(gn_vir_node_port_get_type(),"node",self,NULL);
-	g_signal_connect_object(self->domain,"started",G_CALLBACK(gn_vir_node_port_qemu_started),port,0);
-	gn_vir_node_port_qemu_init(port,NULL);
-	g_list_store_append(self->ports,port);
 	G_OBJECT_CLASS(gn_vir_node_parent_class)->constructed(gobject);
 }
 
@@ -297,6 +397,7 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 	node_class->get_label = gn_vir_node_get_label;
 	node_class->get_state = gn_vir_node_get_state;
 	node_class->query_tooltip = gn_vir_node_query_tooltip;
+	node_class->widget_control_type = GN_TYPE_VIR_NODE_WIDGET;
 	
 	objclass->constructed = gn_vir_node_constructed;
 	objclass->get_property = gn_vir_node_get_property;

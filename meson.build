@@ -25,6 +25,7 @@ srcs = [
 	'src/vde-switch.c',
 	'src/vir-domain-list.c',
 	'src/vir-node.c',
+	'src/vir-node-widget.c',
 	gresources,
 ]
 
