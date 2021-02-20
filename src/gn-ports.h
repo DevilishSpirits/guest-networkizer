@@ -9,7 +9,7 @@ G_DECLARE_DERIVABLE_TYPE(GNPort,gn_port,GN,PORT,GObject)
 struct _GNPortClass {
 	GObjectClass parent_class;
 	// Query it's name
-	const char* (*get_name)(GNPort* port);
+	char* (*get_name)(GNPort* port);
 	// Manually set carrier status
 	gboolean (*set_carrier)(GNPort* port, gboolean has_carrier, GError **error);
 };
