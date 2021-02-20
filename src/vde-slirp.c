@@ -264,7 +264,7 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	TRUE,G_PARAM_READWRITE);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
 	
-	nodeclass->file_properties = g_ptr_array_new_with_free_func((GDestroyNotify)g_param_spec_unref);
+	nodeclass->file_properties = g_ptr_array_copy(nodeclass->file_properties,(GCopyFunc)g_param_spec_ref,NULL);
 	g_ptr_array_add(nodeclass->file_properties,g_param_spec_ref(obj_properties[PROP_DNS_ADDRESS]));
 	g_ptr_array_add(nodeclass->file_properties,g_param_spec_ref(obj_properties[PROP_ENABLE_DHCP]));
 }

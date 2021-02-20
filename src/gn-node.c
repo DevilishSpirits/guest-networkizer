@@ -57,6 +57,8 @@ enum {
 	PROP_NET,
 	PROP_LABEL,
 	PROP_STATE,
+	PROP_XPOS,
+	PROP_YPOS,
 	N_PROPERTIES
 };
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
@@ -71,6 +73,12 @@ static void gn_node_set_property(GObject *object, guint property_id, const GValu
 		} break;
 		case PROP_STATE: {
 			gn_node_set_state(self,g_value_get_enum(value),NULL);
+		} break;
+		case PROP_XPOS: {
+			priv->position.x = g_value_get_int(value);
+		} break;
+		case PROP_YPOS: {
+			priv->position.y = g_value_get_int(value);
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -90,6 +98,12 @@ static void gn_node_get_property(GObject *object, guint property_id, GValue *val
 		} break;
 		case PROP_STATE: {
 			g_value_set_enum(value,klass->get_state(self));
+		} break;
+		case PROP_XPOS: {
+			g_value_set_int(value,priv->position.x);
+		} break;
+		case PROP_YPOS: {
+			g_value_set_int(value,priv->position.y);
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -201,6 +215,12 @@ static void gn_node_class_init(GNNodeClass *klass)
 		NULL,G_PARAM_READABLE);
 	obj_properties[PROP_STATE] = g_param_spec_enum("state", "State", "Node state",
 		GVIR_TYPE_DOMAIN_STATE,0,G_PARAM_READWRITE|G_PARAM_EXPLICIT_NOTIFY);
+	obj_properties[PROP_XPOS] = g_param_spec_int("xpos","X node cordinate","Horizontal position of the node",
+		G_MININT,G_MAXINT,0,G_PARAM_READWRITE);
+	obj_properties[PROP_YPOS] = g_param_spec_int("ypos","Y node cordinate","Vertical position of the node",
+		G_MININT,G_MAXINT,0,G_PARAM_READWRITE);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
 	klass->file_properties = g_ptr_array_new_with_free_func((GDestroyNotify)g_param_spec_unref);
+	g_ptr_array_add(klass->file_properties,obj_properties[PROP_XPOS]);
+	g_ptr_array_add(klass->file_properties,obj_properties[PROP_YPOS]);
 }

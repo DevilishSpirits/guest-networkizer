@@ -481,6 +481,6 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 		NULL,G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY/* TODO Settable at runtime because we do errors */);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
 	
-	node_class->file_properties = g_ptr_array_new_with_free_func((GDestroyNotify)g_param_spec_unref);
+	node_class->file_properties = g_ptr_array_copy(node_class->file_properties,(GCopyFunc)g_param_spec_ref,NULL);
 	g_ptr_array_add(node_class->file_properties,g_param_spec_ref(obj_properties[PROP_DOMAIN_UUID]));
 }
