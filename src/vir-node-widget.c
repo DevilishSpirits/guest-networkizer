@@ -48,7 +48,7 @@ GtkWidget *gn_vir_node_widget_port_list_box_new_widget(GNVirNodePort *port, GNVi
 	NULL);
 	g_object_bind_property(port,"mac-address",mac_entry,"text",G_BINDING_SYNC_CREATE);
 	g_signal_connect_object(mac_entry,"focus-out",G_CALLBACK(gn_vir_node_widget_port_mac_address_focus_out),port,G_CONNECT_SWAPPED);
-	g_signal_connect_object(mac_entry,"changed",G_CALLBACK(gn_vir_node_widget_port_mac_address_changed),port,G_CONNECT_SWAPPED);
+	g_signal_connect_object(mac_entry,"changed",G_CALLBACK(gn_vir_node_widget_port_mac_address_changed),port,0);
 	gtk_box_pack_start(box,mac_entry,TRUE,TRUE,0);
 	
 	// Device combobox
