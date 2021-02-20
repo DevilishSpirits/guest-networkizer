@@ -252,26 +252,40 @@ static void gn_vir_node_screenshot_to_image_at_scale_async(GNVirNode *self, int 
 enum {
 	PROP_NONE,
 	PROP_DOMAIN,
+	PROP_DOMAIN_UUID,
 	N_PROPERTIES
 };
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
+
+void gn_vir_node_set_domain(GNVirNode *self, GVirDomain *domain)
+{
+	self->domain = g_object_ref(domain);
+	// I have *divined* into the code
+	GValue domain_handle_value = G_VALUE_INIT;
+	g_object_get_property(G_OBJECT(self->domain),"handle",&domain_handle_value);
+	self->domain_handle = g_value_get_boxed(&domain_handle_value);
+	g_value_unset(&domain_handle_value);
+	// Connect to state change notifications
+	g_signal_connect_object(self->domain,"pmsuspended",G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+	g_signal_connect_object(self->domain,"resumed"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+	g_signal_connect_object(self->domain,"started"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+	g_signal_connect_object(self->domain,"stopped"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+	g_signal_connect_object(self->domain,"suspended"  ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+}
 static void gn_vir_node_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
 	GNVirNode *self = GN_VIR_NODE(object);
 	switch (property_id) {
 		case PROP_DOMAIN: {
-			self->domain = GVIR_DOMAIN(g_value_dup_object(value));
-			// I have *divined* into the code
-			GValue domain_handle_value = G_VALUE_INIT;
-			g_object_get_property(G_OBJECT(self->domain),"handle",&domain_handle_value);
-			self->domain_handle = g_value_get_boxed(&domain_handle_value);
-			g_value_unset(&domain_handle_value);
-			// Connect state change notifications
-			g_signal_connect_object(self->domain,"pmsuspended",G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
-			g_signal_connect_object(self->domain,"resumed"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
-			g_signal_connect_object(self->domain,"started"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
-			g_signal_connect_object(self->domain,"stopped"    ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
-			g_signal_connect_object(self->domain,"suspended"  ,G_CALLBACK(gn_node_notify_state_change),self,G_CONNECT_SWAPPED);
+			gn_vir_node_set_domain(self,GVIR_DOMAIN(g_value_get_object(value)));
+		} break;
+		case PROP_DOMAIN_UUID: {
+			const char* str = g_value_get_string(value);
+			if (str) {
+				GVirDomain *domain = gvir_connection_get_domain(vir_connection,str);
+				gn_vir_node_set_domain(self,domain);
+				g_object_unref(domain);
+			}
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -306,6 +320,9 @@ static void gn_vir_node_get_property(GObject *object, guint property_id, GValue 
 	switch (property_id) {
 		case PROP_DOMAIN: {
 			g_value_set_object(value,self->domain);
+		} break;
+		case PROP_DOMAIN_UUID: {
+			g_value_set_string(value,gvir_domain_get_uuid(self->domain));
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -407,5 +424,10 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 	
 	obj_properties[PROP_DOMAIN] = g_param_spec_object("domain", "libvirt's domain", "Virtual machine domain",
 		GVIR_TYPE_DOMAIN,G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY/* TODO Settable at runtime because we do errors */);
+	obj_properties[PROP_DOMAIN_UUID] = g_param_spec_string("domain-uuid", "libvirt's domain UUID", "Virtual machine domain UUID",
+		NULL,G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY/* TODO Settable at runtime because we do errors */);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
+	
+	node_class->file_properties = g_ptr_array_new_with_free_func((GDestroyNotify)g_param_spec_unref);
+	g_ptr_array_add(node_class->file_properties,g_param_spec_ref(obj_properties[PROP_DOMAIN_UUID]));
 }
