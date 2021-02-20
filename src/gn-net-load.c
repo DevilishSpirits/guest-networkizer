@@ -80,6 +80,11 @@ static void gn_net_load_main_start_element(GMarkupParseContext *context, const g
 								g_value_init(&prop_value,G_TYPE_BOOLEAN);
 								g_value_set_boolean(&prop_value,prop_str[0] == 't');
 							} break;
+							case G_TYPE_INT: {
+								// FIXME This is weak
+								g_value_init(&prop_value,G_TYPE_INT);
+								g_value_set_int(&prop_value,atoi(prop_str));
+							} break;
 							case G_TYPE_STRING: {
 								g_value_init(&prop_value,G_TYPE_STRING);
 								g_value_set_string(&prop_value,prop_str);
