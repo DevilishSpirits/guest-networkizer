@@ -56,7 +56,7 @@ GtkWidget *gn_vir_node_widget_port_list_box_new_widget(GNVirNodePort *port, GNVi
 	GtkEntry *device_entry = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(device_combo)));
 	gtk_entry_set_input_hints(device_entry,GTK_INPUT_HINT_NO_SPELLCHECK|GTK_INPUT_HINT_LOWERCASE|GTK_INPUT_HINT_NO_EMOJI);
 	g_object_bind_property(port,"device",device_combo,"active-id",G_BINDING_SYNC_CREATE|G_BINDING_BIDIRECTIONAL);
-	gtk_box_pack_start(box,GTK_WIDGET(device_entry),TRUE,TRUE,0);
+	gtk_box_pack_start(box,GTK_WIDGET(device_combo),TRUE,TRUE,0);
 	
 	// Delete button
 	GtkWidget *delete_button = gtk_button_new_from_icon_name("edit-delete-symbolic",GTK_ICON_SIZE_BUTTON);
