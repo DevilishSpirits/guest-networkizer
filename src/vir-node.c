@@ -104,6 +104,12 @@ static gboolean gn_vir_node_perform_qemu(GNVirNodePort *self, const char* cmd, c
 
 static gboolean gn_vir_node_port_qemu_set_carrier(GNVirNodePort *self, gboolean active, GError** error)
 {
+	switch (gn_vir_node_get_state(gn_port_get_node(GN_PORT(self)))) {
+		case GVIR_DOMAIN_STATE_CRASHED:
+		case GVIR_DOMAIN_STATE_SHUTOFF:
+			return TRUE;
+		default:break;
+	}
 	static const char* link_level[2] = {"off","on"};
 	active = active != FALSE; // Avoid buffer overflow
 	
@@ -114,6 +120,12 @@ static gboolean gn_vir_node_port_qemu_set_carrier(GNVirNodePort *self, gboolean 
 }
 static gboolean gn_vir_node_port_qemu_init(GNVirNodePort *self, GError** error)
 {
+	switch (gn_vir_node_get_state(gn_port_get_node(GN_PORT(self)))) {
+		case GVIR_DOMAIN_STATE_CRASHED:
+		case GVIR_DOMAIN_STATE_SHUTOFF:
+			return TRUE;
+		default:break;
+	}
 	GNPort *port = GN_PORT(self);
 	char* cmd;
 	gboolean result;
@@ -277,7 +289,9 @@ static void gn_vir_node_set_property(GObject *object, guint property_id, const G
 	GNVirNode *self = GN_VIR_NODE(object);
 	switch (property_id) {
 		case PROP_DOMAIN: {
-			gn_vir_node_set_domain(self,GVIR_DOMAIN(g_value_get_object(value)));
+			GVirDomain *domain = GVIR_DOMAIN(g_value_get_object(value));
+			if (domain)
+				gn_vir_node_set_domain(self,domain);
 		} break;
 		case PROP_DOMAIN_UUID: {
 			const char* str = g_value_get_string(value);
@@ -382,6 +396,43 @@ static GListModel *gn_vir_node_query_portlist_model(GNNode* node)
 {
 	return GN_VIR_NODE(node)->ports;
 }
+
+
+static void gn_vir_node_file_load_start_element(GMarkupParseContext *context, const gchar *element_name, const gchar **attribute_names, const gchar **attribute_values, gpointer user_data, GError **error)
+{
+	g_warning("load start");
+	GNVirNode *self = GN_VIR_NODE(user_data);
+	if (g_str_equal(element_name,"nic")) {
+		char* mac_str;
+		char* device_str;
+		if (g_markup_collect_attributes(element_name,attribute_names,attribute_values,error,
+		 G_MARKUP_COLLECT_STRING,"mac",&mac_str,
+		 G_MARKUP_COLLECT_STRING,"device",&device_str,
+		 G_MARKUP_COLLECT_INVALID)) {
+			// FIXME This is bad code duplication
+			GNVirNodePort *port = g_object_new(gn_vir_node_port_get_type(),"node",self,"mac-address",mac_str,"device",device_str,NULL);
+			g_signal_connect_object(self->domain,"started",G_CALLBACK(gn_vir_node_port_qemu_started),port,0);
+			gn_vir_node_port_qemu_init(port,NULL);
+			g_list_store_append(self->ports,port);
+			g_object_unref(port);
+		}
+	}
+	gn_net_load_skip_parser_push(context);
+}
+static gboolean gn_vir_node_file_save(GNNode *node, struct gn_net_save_context* ctx)
+{
+	GNVirNode *self = GN_VIR_NODE(node);
+	GListModel *model = G_LIST_MODEL(self->ports);
+	guint n_items = g_list_model_get_n_items(model);
+	for (guint i = 0; i < n_items; i++) {
+		GNVirNodePort *port = GN_VIR_NODE_PORT(g_list_model_get_item(model,i));
+		gchar *espaced_device = g_markup_escape_text(port->device,-1);
+		g_output_stream_printf(ctx->stream,NULL,ctx->cancellable,ctx->error,"	<nic mac=\"%02x:%02x:%02x:%02x:%02x:%02x\" device=\"%s\"/>\n",port->mac[0],port->mac[1],port->mac[2],port->mac[3],port->mac[4],port->mac[5],espaced_device);
+		g_free(espaced_device);
+	}
+	return TRUE;
+}
+
 static void gn_vir_node_constructed(GObject *gobject)
 {
 	GNVirNode *self = GN_VIR_NODE(gobject);
@@ -415,6 +466,8 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 	node_class->get_state = gn_vir_node_get_state;
 	node_class->query_tooltip = gn_vir_node_query_tooltip;
 	node_class->widget_control_type = GN_TYPE_VIR_NODE_WIDGET;
+	node_class->file_load_parser.start_element = gn_vir_node_file_load_start_element;
+	node_class->file_save = gn_vir_node_file_save;
 	
 	objclass->constructed = gn_vir_node_constructed;
 	objclass->get_property = gn_vir_node_get_property;
