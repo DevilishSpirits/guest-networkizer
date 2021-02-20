@@ -42,12 +42,14 @@ static void gn_main_window_reset_new_object(GNMainWindow *self)
 
 G_MODULE_EXPORT void gn_main_window_open(GNMainWindow *self)
 {
+	
 	GtkFileChooserNative *dialog = gtk_file_chooser_native_new(NULL,GTK_WINDOW(self),GTK_FILE_CHOOSER_ACTION_OPEN,NULL,NULL);
 	if (gtk_native_dialog_run(GTK_NATIVE_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		GError *error = NULL;
 		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
-		GFileInputStream *stream = g_file_read(file,NULL,NULL);
+		GFileInputStream *stream = g_file_read(file,NULL,&error);
 		if (stream) {
-			GNNet *new_net = gn_net_load(G_INPUT_STREAM(stream),NULL,NULL);
+			GNNet *new_net = gn_net_load(G_INPUT_STREAM(stream),NULL,&error);
 			if (new_net) {
 				g_object_unref(self->net);
 				self->net = new_net;
@@ -59,6 +61,14 @@ G_MODULE_EXPORT void gn_main_window_open(GNMainWindow *self)
 			g_object_unref(stream);
 		}
 		g_object_unref(file);
+		// Signal error if there one
+		if (error) {
+			GtkWidget *err_dialog = gtk_message_dialog_new(self,GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Open failed");
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(err_dialog),"%s",error->message);
+			g_signal_connect(err_dialog,"response",G_CALLBACK(gtk_widget_hide),NULL);
+			g_error_free(error);
+			gtk_dialog_run(err_dialog);
+		}
 	}
 	g_object_unref(dialog);
 }
