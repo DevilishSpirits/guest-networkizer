@@ -9,14 +9,12 @@ static const char gn_file_save_char_kit[] = "<node type=\"/>\n";
 #define GN_FILE_SAVE_NODE_PARAM_LEFT  &gn_file_save_char_kit[ 5], 1 //   (a space)
 #define GN_FILE_SAVE_NODE_PARAM_MID   &gn_file_save_char_kit[10], 2 // =\"
 #define GN_FILE_SAVE_NODE_PARAM_RIGHT &gn_file_save_char_kit[11], 1 // \"
-#define GN_FILE_SAVE_NODE_END         &gn_file_save_char_kit[12], 3 // />\n
+#define GN_FILE_SAVE_NODE_END_SIMPLE  &gn_file_save_char_kit[12], 3 // />\n
+#define GN_FILE_SAVE_NODE_END_COMPLEX &gn_file_save_char_kit[13], 2 // >\n
+#define GN_FILE_SAVE_NODE_ENDING_TAG  &gn_file_save_end     [ 0], 2 // </
+#define GN_FILE_SAVE_NODE_WORD        &gn_file_save_char_kit[ 1], 4 // node
 
 // Some magic macros
-struct gn_net_save_context {
-	GOutputStream* stream;
-	GCancellable *cancellable;
-	GError **error;
-};
 gboolean gn_net_save_context_write(struct gn_net_save_context* ctx, const void* data, gsize size)
 {
 	if (!g_output_stream_write_all(ctx->stream,data,size,NULL,ctx->cancellable,ctx->error)) {
@@ -24,7 +22,6 @@ gboolean gn_net_save_context_write(struct gn_net_save_context* ctx, const void* 
 		return FALSE;
 	} else return TRUE;
 }
-#define gn_net_save_context_write_static(ctx,chr_array) gn_net_save_context_write(ctx,chr_array,sizeof(chr_array)-1)
 gboolean gn_net_save_context_writev(struct gn_net_save_context* ctx, GOutputVector *vectors, gsize n_vectors)
 {
 	if (!g_output_stream_writev_all(ctx->stream,vectors,n_vectors,NULL,ctx->cancellable,ctx->error)) {
@@ -32,7 +29,6 @@ gboolean gn_net_save_context_writev(struct gn_net_save_context* ctx, GOutputVect
 		return FALSE;
 	} else return TRUE;
 }
-#define gn_net_save_context_writev_static(ctx,vectors) gn_net_save_context_writev(ctx,vectors,sizeof(vectors)/sizeof(vectors)[0])
 
 gboolean gn_net_save_context_dump_object_properties(struct gn_net_save_context* ctx, GObject* object, GParamSpec **param_specs, guint n_properties)
 {
@@ -67,7 +63,6 @@ gboolean gn_net_save_context_dump_object_properties(struct gn_net_save_context* 
 		// Write datas
 		if (value_string) {
 			const gsize name_len = strlen(param_spec->name);
-			static const char static_strings[] = " =\"";
 			GOutputVector vector[] = {
 				{GN_FILE_SAVE_NODE_PARAM_LEFT},  // Put a leading space  ;_            ;
 				{param_spec->name,name_len},     // Property name        ; prop        ;
@@ -107,10 +102,18 @@ gboolean gn_net_save(GNNet *net, GOutputStream* stream, GCancellable *cancellabl
 			{node_name,strlen(node_name)},   // Node class
 			{GN_FILE_SAVE_NODE_PARAM_RIGHT}, // End the param
 		};
+		GOutputVector vector_complx_close_tag[] = {
+			{GN_FILE_SAVE_NODE_ENDING_TAG},
+			{GN_FILE_SAVE_NODE_WORD},
+			{GN_FILE_SAVE_NODE_END_COMPLEX},
+		};
 		if (!( // Write the node with checks
 		 gn_net_save_context_writev_static(&ctx,vector) &&
 		 gn_net_save_context_dump_object_properties(&ctx,G_OBJECT(node),(GParamSpec**)node_class->file_properties->pdata,node_class->file_properties->len) &&
-		 gn_net_save_context_write(&ctx,GN_FILE_SAVE_NODE_END)))
+		 node_class->file_save
+		 	? gn_net_save_context_write(&ctx,GN_FILE_SAVE_NODE_END_COMPLEX) && node_class->file_save(node,&ctx) && gn_net_save_context_writev_static(&ctx,vector_complx_close_tag)
+		 	: gn_net_save_context_write(&ctx,GN_FILE_SAVE_NODE_END_SIMPLE)
+		 ))
 			return FALSE;
 	}
 	// Save links

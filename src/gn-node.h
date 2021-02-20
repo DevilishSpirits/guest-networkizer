@@ -4,6 +4,13 @@
 #include <libvirt-gobject/libvirt-gobject.h>
 #include "gn-ports.h"
 
+// TODO Found a better place ^^
+struct gn_net_save_context {
+	GOutputStream* stream;
+	GCancellable *cancellable;
+	GError **error;
+};
+
 G_BEGIN_DECLS
 
 #define GN_TYPE_NODE gn_node_get_type()
@@ -33,6 +40,10 @@ struct _GNNodeClass {
 	// List of properties to read/write in files
 	// Array of GParamSpec, the array own a reference to them and can be reffed
 	GPtrArray *file_properties;
+	// The GMarkupParser if you support special subnodes. By default skip the body. user_data is the node itself.
+	GMarkupParser file_load_parser;
+	// Callback if you must save additionnal datas
+	gboolean (*file_save)(GNNode *node, struct gn_net_save_context* ctx);
 };
 
 gboolean gn_node_set_state(GNNode* node, GVirDomainState state, GError **error);

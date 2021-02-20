@@ -187,6 +187,8 @@ static void gn_node_class_init(GNNodeClass *klass)
 	klass->get_label = gn_node_default_get_label;
 	klass->get_state = gn_node_default_get_state;
 	klass->render = gn_node_default_render;
+	klass->file_load_parser.start_element = (void(*)(GMarkupParseContext*,const gchar*,const gchar**,const gchar**,gpointer,GError**))gn_net_load_skip_parser_push;
+		klass->file_load_parser.end_element = (void(*)(GMarkupParseContext*,const gchar*,void*,GError**))g_markup_parse_context_pop;
 	
 	objclass->get_property = gn_node_get_property;
 	objclass->set_property = gn_node_set_property;

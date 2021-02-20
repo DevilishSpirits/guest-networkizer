@@ -16,6 +16,15 @@ static GMarkupParser gn_net_load_main_parser = {
 	NULL,
 	NULL,
 };
+static void gn_net_load_skip_start_element(GMarkupParseContext *context, const gchar *element_name, const gchar **attribute_names, const gchar **attribute_values, gpointer user_data, GError **error);
+static void gn_net_load_skip_end_element(GMarkupParseContext *context, const gchar *element_name, gpointer user_data, GError **error);
+static GMarkupParser gn_net_load_skip_parser = {
+	gn_net_load_skip_start_element,
+	gn_net_load_skip_end_element,
+	NULL,
+	NULL,
+	NULL,
+};
 
 static void gn_net_load_root_start_element(GMarkupParseContext *context, const gchar *element_name, const gchar **attribute_names, const gchar **attribute_values, gpointer user_data, GError **error)
 {
@@ -86,10 +95,12 @@ static void gn_net_load_main_start_element(GMarkupParseContext *context, const g
 					}
 				}
 				// Create the object
-				g_ptr_array_add(net->nodes,g_object_new_with_properties(type,new_node_prop_name->len,(const char**)new_node_prop_name->pdata,(GValue*)new_node_prop_value->data));
+				GObject *new_node = g_object_new_with_properties(type,new_node_prop_name->len,(const char**)new_node_prop_name->pdata,(GValue*)new_node_prop_value->data);
+				g_ptr_array_add(net->nodes,new_node);
 				// Cleanups
 				g_ptr_array_set_size(new_node_prop_name,1);
 				g_array_set_size(new_node_prop_value,1);
+				g_markup_parse_context_push(context,&node_class->file_load_parser,new_node);
 				g_type_class_unref(node_class);
 			} else g_set_error(error,G_MARKUP_ERROR,G_MARKUP_ERROR_UNKNOWN_ATTRIBUTE,"Node type=\"%s\" is unknown",type_str);
 		}
@@ -123,6 +134,22 @@ static void gn_net_load_main_start_element(GMarkupParseContext *context, const g
 			gn_port_set_link(GN_PORT(g_list_model_get_item(node_a_ports,port_a_index)),GN_PORT(g_list_model_get_item(node_b_ports,port_b_index)),error);
 		}
 	} // TODO else skip this tag
+}
+
+static void gn_net_load_skip_start_element(GMarkupParseContext *context, const gchar *element_name, const gchar **attribute_names, const gchar **attribute_values, gpointer user_data, GError **error)
+{
+	(*(guint*)user_data)++;
+}
+static void gn_net_load_skip_end_element(GMarkupParseContext *context, const gchar *element_name, gpointer user_data, GError **error)
+{
+	if ((*(guint*)user_data--) != 0) {
+		g_slice_free(guint,user_data);
+		g_markup_parse_context_pop(context);
+	}
+}
+void gn_net_load_skip_parser_push(GMarkupParseContext *context)
+{
+	g_markup_parse_context_push(context,&gn_net_load_skip_parser,g_slice_new0(guint));
 }
 
 GNNet* gn_net_load(GInputStream *stream, GCancellable *cancellable, GError **error)
