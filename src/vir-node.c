@@ -211,6 +211,7 @@ static void gn_vir_node_port_class_init(GNVirNodePortClass *klass)
 	GNPortClass  *port_class = GN_PORT_CLASS(klass);
 	GObjectClass *objclass = G_OBJECT_CLASS(klass);
 	
+	port_class->get_name = (char*(*)(GNPort*))gn_vir_node_port_get_mac_address;
 	port_class->set_carrier = gn_vir_node_port_qemu_set_carrier;
 	
 	objclass->get_property = gn_vir_node_port_get_property;
