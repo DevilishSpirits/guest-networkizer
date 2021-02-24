@@ -18,7 +18,6 @@ srcs = [
 	'src/gn-node.c',
 	'src/gn-node-panel.c',
 	'src/gn-ports.c',
-	'src/main.c',
 	'src/vde-ns.c',
 	'src/vde-slirp.c',
 	'src/vde-slirp-widget.c',
@@ -36,4 +35,22 @@ deps = [
 	dep_virtqemu,
 ]
 
-executable('guest-networkizer', srcs, export_dynamic: true, install: true, dependencies: deps)
+executable('guest-networkizer', srcs, 'src/main.c', export_dynamic: true, install: true, dependencies: deps)
+
+# Static library to avoid rebuilding full source for each tests
+test_lib = static_library('test_lib', srcs, 'tests/main.c', install: false, dependencies: deps, include_directories: include_directories('src'), build_by_default: false)
+
+test_dep = declare_dependency(link_whole: test_lib, dependencies: deps, include_directories: include_directories('src'))
+
+basic_tests = [
+	'node-detached-panel-ref-check',
+]
+
+test_env = {
+	'G_DEBUG': 'fatal-criticals,fatal-warnings',
+}
+foreach test_unit: basic_tests
+	test_prog = executable(test_unit, 'tests/'+test_unit+'.c', export_dynamic: true, install: false, dependencies: test_dep, build_by_default: false)
+	test(test_unit, test_prog, env: test_env, protocol: 'tap')
+endforeach
+
