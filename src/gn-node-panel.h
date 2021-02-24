@@ -16,5 +16,6 @@ struct _GNNodePanel {
 	// Template widgets
 	GtkWidget *wireshark_button;
 	GtkSwitch *onoff_switch;
+	GtkWidget *restore_button;
 };
 G_END_DECLS

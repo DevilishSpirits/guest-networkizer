@@ -41,7 +41,7 @@ static gboolean gn_node_panel_onoff_switch_active_from_state(GBinding *binding, 
 	}
 }
 
-G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *button, GtkWidget *self)
+G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *self)
 {
 	GtkContainer *parent = GTK_CONTAINER(gtk_widget_get_parent(self));
 	// Unparent myself
@@ -57,7 +57,7 @@ G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *button, GtkWidget *self)
 	gtk_widget_show(window);
 	
 	// Destroy this button
-	gtk_widget_destroy(button);
+	gtk_widget_destroy(GN_NODE_PANEL(self)->restore_button);
 	
 	// Popdown parent
 	gtk_popover_popdown(GTK_POPOVER(parent));
@@ -153,4 +153,5 @@ static void gn_node_panel_class_init(GNNodePanelClass *klass)
 	gtk_widget_class_set_template_from_resource(widget_class,"/me/d_spirits/guest_networkizer/ui/GNNodePanel");
 	gtk_widget_class_bind_template_child(widget_class,GNNodePanel,wireshark_button);
 	gtk_widget_class_bind_template_child(widget_class,GNNodePanel,onoff_switch);
+	gtk_widget_class_bind_template_child(widget_class,GNNodePanel,restore_button);
 }

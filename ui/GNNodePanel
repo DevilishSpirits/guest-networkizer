@@ -44,12 +44,12 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton">
+          <object class="GtkButton" id="restore_button">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="tooltip-markup" translatable="yes">&lt;b&gt;Show in separate window&lt;/b&gt;</property>
-            <signal name="clicked" handler="gn_node_panel_restore" swapped="no"/>
+            <signal name="clicked" handler="gn_node_panel_restore" swapped="yes"/>
             <child>
               <object class="GtkImage">
                 <property name="visible">True</property>
