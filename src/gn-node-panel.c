@@ -44,13 +44,14 @@ static gboolean gn_node_panel_onoff_switch_active_from_state(GBinding *binding, 
 G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *self)
 {
 	GtkContainer *parent = GTK_CONTAINER(gtk_widget_get_parent(self));
+	GNNode *node = GN_NODE_PANEL(self)->node;
 	// Unparent myself
 	g_object_ref(self); // Ensure I'm not killed
 	gtk_container_remove(parent,self);
 	
 	// Put me in a window
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	g_object_bind_property(GN_NODE_PANEL(self)->node,"label",window,"title",G_BINDING_SYNC_CREATE);
+	g_object_bind_property(node,"label",window,"title",G_BINDING_SYNC_CREATE);
 	gtk_container_add(GTK_CONTAINER(window),self);
 	g_object_unref(self);
 	gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
@@ -69,13 +70,29 @@ G_MODULE_EXPORT gboolean gn_node_panel_wireshark(GtkWidget *button, GNNodePanel 
 	g_object_unref(subprocess);
 }
 
+static gboolean gn_node_panel_node_destroyed_do(gpointer data)
+{
+	gtk_widget_destroy(GTK_WIDGET(data));
+	return G_SOURCE_REMOVE;
+}
+static void gn_node_panel_node_destroyed(gpointer data, GObject *where_the_object_was)
+{
+	GNNodePanel *self = GN_NODE_PANEL(data);
+	GtkWidget *widget = GTK_WIDGET(self);
+	GtkWidget *parent = gtk_widget_get_parent(widget);
+	
+	self->node = NULL;
+	
+	// Shedule destruction after the node is destroyed to avoid weird conditions
+	if (GTK_IS_WINDOW(parent))
+		g_idle_add_full(G_PRIORITY_HIGH,gn_node_panel_node_destroyed_do,parent,NULL);
+	else g_idle_add_full(G_PRIORITY_HIGH,gn_node_panel_node_destroyed_do,widget,NULL);
+}
 void gn_node_panel_set_node(GNNodePanel *panel, GNNode *node)
 {
 	// Cleanups
-	if (panel->node) {
-		g_object_unref(panel->node);
-		g_clear_object(&panel->node_widget);
-	}
+	g_clear_object(&panel->node_widget);
+	g_object_weak_ref(G_OBJECT(node),gn_node_panel_node_destroyed,panel);
 	
 	// Set node
 	panel->node = node;
@@ -103,7 +120,7 @@ static void gn_node_panel_set_property(GObject *object, guint property_id, const
 	GNNodePanel *self = GN_NODE_PANEL(object);
 	switch (property_id) {
 		case PROP_NODE: {
-			gn_node_panel_set_node(self,GN_NODE(g_value_dup_object(value)));
+			gn_node_panel_set_node(self,GN_NODE(g_value_get_object(value)));
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -134,8 +151,11 @@ static void gn_node_panel_init(GNNodePanel *self)
 }
 static void gn_node_panel_dispose(GNNodePanel *self)
 {
-	if (self->node)
-		g_object_unref(self->node);
+	if (self->node) {
+		g_object_weak_unref(G_OBJECT(self->node),gn_node_panel_node_destroyed,self);
+		self->node = NULL;
+	}
+	G_OBJECT_CLASS(gn_node_panel_parent_class)->dispose(self);
 }
 static void gn_node_panel_class_init(GNNodePanelClass *klass)
 {
