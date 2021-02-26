@@ -10,6 +10,7 @@
 		<file preprocess="xml-stripblanks">icons/network-nat.svg</file>
 		<file preprocess="xml-stripblanks">icons/network-nat-symbolic.svg</file>
 		<file preprocess="xml-stripblanks">icons/network-router-symbolic.svg</file>
+		<file preprocess="xml-stripblanks">icons/network-switch.svg</file>
 		<file preprocess="xml-stripblanks">icons/network-switch-symbolic.svg</file>
 	</gresource>
 </gresources>
