@@ -72,6 +72,31 @@ static void gn_vde_switch_finalize(GObject *gobject)
 	G_OBJECT_CLASS(gn_vde_switch_parent_class)->finalize(gobject);
 }
 
+static const char* gn_vde_slirp_get_label(GNNode *node)
+{
+	static const char* result = "Switch";
+	return result;
+}
+static void gn_vde_switch_render(GNNode* node, cairo_t *cr)
+{
+	// Get real pixel size
+	double picx = 1;
+	double picy = 0;
+	cairo_user_to_device_distance(cr,&picx,&picy);
+	// Render computer screen
+	// TODO Cache icons
+	GtkIconInfo *icon_info = gtk_icon_theme_lookup_icon(gtk_icon_theme_get_default(),"network-switch",picx,0);
+	GdkPixbuf *pixbuf = gtk_icon_info_load_icon(icon_info,NULL);
+	g_object_unref(icon_info);
+	gdk_cairo_set_source_pixbuf(cr,pixbuf,0,0);
+	g_object_unref(pixbuf);
+	cairo_matrix_t matrix;
+	cairo_matrix_init_scale(&matrix,picx,picx);
+	cairo_matrix_translate(&matrix,.5,.5);
+	cairo_pattern_set_matrix(cairo_get_source(cr),&matrix);
+	cairo_rectangle(cr,-.5,-.5,1,1);
+	cairo_fill(cr);
+}
 static GListModel *gn_vde_switch_query_portlist_model(GNNode* node)
 {
 	return GN_VDE_SWITCH(node)->ports;
@@ -81,6 +106,8 @@ static void gn_vde_switch_class_init(GNVDESwitchClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	GNNodeClass* nodeclass = GN_NODE_CLASS(klass);
 	
+	nodeclass->get_label = gn_vde_slirp_get_label;
+	nodeclass->render = gn_vde_switch_render;
 	nodeclass->query_portlist_model = gn_vde_switch_query_portlist_model;
 	
 	objclass->dispose = gn_vde_switch_dispose;
