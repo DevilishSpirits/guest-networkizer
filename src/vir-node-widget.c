@@ -78,6 +78,13 @@ static void gn_vir_node_widget_set_node(GNVirNodeWidget *self, GNVirNode *node)
 	gtk_list_box_bind_model(self->ports_listbox,node_class->query_portlist_model(GN_NODE(node)),(GtkListBoxCreateWidgetFunc)gn_vir_node_widget_port_list_box_new_widget,self,NULL);
 	g_signal_connect_object(self->port_add_button,"clicked",G_CALLBACK(gn_vir_node_port_add),node,G_CONNECT_SWAPPED);
 }
+G_MODULE_EXPORT void gn_vir_node_widget_open_display(GNVirNodeWidget *self)
+{
+	// FIXME Don't assume virt-manager
+	// FIXME Don't hardcore socket path
+	char *argv[] = {"virt-manager","-c","qemu:///session","--show-domain-console",(char*)gvir_domain_get_uuid(self->node->domain),NULL};
+	g_spawn_async(NULL,argv,NULL,G_SPAWN_SEARCH_PATH_FROM_ENVP,NULL,NULL,NULL,NULL);
+}
 static void gn_vir_node_widget_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
 	GNVirNodeWidget *self = GN_VIR_NODE_WIDGET(object);
