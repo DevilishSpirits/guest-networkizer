@@ -5,6 +5,7 @@ gboolean gn_vde_slirp_config_equal(const GNVDESlirpConfig* a, const GNVDESlirpCo
 	return TRUE
 		&& g_inet_address_equal(a->dns_server,b->dns_server)
 		&& a->enable_dhcp == b->enable_dhcp
+		&& !g_strcmp0(a->tftp_share,b->tftp_share)
 	;
 }
 void gn_vde_slirp_config_copy(const GNVDESlirpConfig* from, GNVDESlirpConfig* to)
@@ -12,10 +13,15 @@ void gn_vde_slirp_config_copy(const GNVDESlirpConfig* from, GNVDESlirpConfig* to
 	g_clear_object(&to->dns_server);
 	to->dns_server = g_object_ref(from->dns_server);
 	to->enable_dhcp = from->enable_dhcp;
+	free(to->tftp_share);
+	if (from->tftp_share)
+		to->tftp_share = g_strdup(from->tftp_share);
+	else to->tftp_share = NULL;
 }
 GNVDESlirpConfig* gn_vde_slirp_config_dup(const GNVDESlirpConfig* config)
 {
 	GNVDESlirpConfig* new_config = g_slice_new(GNVDESlirpConfig);
+	new_config->tftp_share = NULL;
 	gn_vde_slirp_config_copy(config,new_config);
 	return new_config;
 }
@@ -23,6 +29,7 @@ void gn_vde_slirp_config_free(gpointer boxed)
 {
 	GNVDESlirpConfig* self = (GNVDESlirpConfig*)boxed;
 	g_object_unref(self->dns_server);
+	free(self->tftp_share);
 	g_free(self);
 }
 G_DEFINE_BOXED_TYPE(GNVDESlirpConfig,gn_vde_slirp_config,gn_vde_slirp_config_dup,gn_vde_slirp_config_free)
@@ -41,6 +48,7 @@ enum {
 	PROP_CURRENT_CONFIG,
 	PROP_DNS_ADDRESS,
 	PROP_ENABLE_DHCP,
+	PROP_TFTP_SHARE,
 	N_PROPERTIES
 };
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
@@ -51,6 +59,7 @@ void gn_vde_slirp_config_set_defaults(GNVDESlirpConfig* config)
 	config->dns_server = g_inet_address_new_from_string(G_PARAM_SPEC_STRING(obj_properties[PROP_DNS_ADDRESS])->default_value);
 	
 	config->enable_dhcp = G_PARAM_SPEC_BOOLEAN(obj_properties[PROP_ENABLE_DHCP])->default_value;
+	config->tftp_share = G_PARAM_SPEC_STRING(obj_properties[PROP_TFTP_SHARE])->default_value;
 }
 
 gboolean gn_vde_slirp_set_dns_address(GNVDESlirp *slirp, const char* address)
@@ -67,6 +76,15 @@ gboolean gn_vde_slirp_set_dns_address(GNVDESlirp *slirp, const char* address)
 	g_object_notify_by_pspec(G_OBJECT(slirp),obj_properties[PROP_CONFIG]);
 	return TRUE;
 }
+void gn_vde_slirp_set_tftp_share(GNVDESlirp *slirp, const char* path)
+{
+	if (g_strcmp0(slirp->config.tftp_share,path)) {
+		free(slirp->config.tftp_share);
+		slirp->config.tftp_share = g_strdup(path);
+		g_object_notify_by_pspec(G_OBJECT(slirp),obj_properties[PROP_TFTP_SHARE]);
+		g_object_notify_by_pspec(G_OBJECT(slirp),obj_properties[PROP_CONFIG]);
+	}
+}
 
 static void gn_vde_slirp_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
@@ -81,6 +99,9 @@ static void gn_vde_slirp_set_property(GObject *object, guint property_id, const 
 		case PROP_ENABLE_DHCP: {
 			self->config.enable_dhcp = g_value_get_boolean(value);
 			g_object_notify_by_pspec(G_OBJECT(self),obj_properties[PROP_CONFIG]);
+		} break;
+		case PROP_TFTP_SHARE: {
+			gn_vde_slirp_set_tftp_share(self,g_value_get_string(value));
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -101,6 +122,9 @@ static void gn_vde_slirp_get_property(GObject *object, guint property_id, GValue
 		} break;
 		case PROP_ENABLE_DHCP: {
 			g_value_set_boolean(value,self->config.enable_dhcp);
+		} break;
+		case PROP_TFTP_SHARE: {
+			g_value_set_string(value,self->config.tftp_share);
 		} break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object,property_id,pspec);
@@ -142,6 +166,7 @@ static gboolean gn_vde_slirp_start(GNNode *node, GError **error)
 	static char* base_argv[] = {"slirpvde","-q","-s"};
 	static char* option_dhcp = "-D";
 	static char* option_dns = "-N";
+	static char* option_tftp = "-t";
 	GPtrArray *argv = g_ptr_array_sized_new(4);
 	for (int i = 0; i < sizeof(base_argv)/sizeof(base_argv[0]); i++)
 		g_ptr_array_add(argv,base_argv[i]);
@@ -153,6 +178,11 @@ static gboolean gn_vde_slirp_start(GNNode *node, GError **error)
 	
 	if (self->current_config.enable_dhcp)
 		g_ptr_array_add(argv,option_dhcp);
+		
+	if (self->current_config.tftp_share) {
+		g_ptr_array_add(argv,option_tftp);
+		g_ptr_array_add(argv,self->current_config.tftp_share);
+	}
 	
 	// Start
 	g_ptr_array_add(argv,NULL);
@@ -262,6 +292,8 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	"10.0.2.3",G_PARAM_READWRITE);
 	obj_properties[PROP_ENABLE_DHCP] = g_param_spec_boolean("enable-dhcp", "Enable DHCP", "Enable DHCP server",
 	TRUE,G_PARAM_READWRITE);
+	obj_properties[PROP_TFTP_SHARE] = g_param_spec_string("tftp-share", "TFTP share", "TFTP host share path",
+	NULL,G_PARAM_READWRITE|G_PARAM_EXPLICIT_NOTIFY);
 	g_object_class_install_properties(objclass,N_PROPERTIES,obj_properties);
 	
 	nodeclass->file_properties = g_ptr_array_copy(nodeclass->file_properties,(GCopyFunc)g_param_spec_ref,NULL);

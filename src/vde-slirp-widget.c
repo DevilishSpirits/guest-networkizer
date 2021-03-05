@@ -44,6 +44,19 @@ G_MODULE_EXPORT void gn_vde_slirp_widget_dns_changed(GtkEntry *entry, GNVDESlirp
 	else gtk_style_context_add_class(context,"error");
 }
 
+G_MODULE_EXPORT void gn_vde_slirp_widget_tftp_share_button_file_set(GtkFileChooser *file_chooser, GNVDESlirpWidget* self)
+{
+	gn_vde_slirp_set_tftp_share(self->node,gtk_file_chooser_get_filename(file_chooser));
+}
+static void gn_vde_slirp_widget_tftp_share_changed(GNVDESlirp* slirp, GParamSpec *pspec, GtkFileChooser* file_chooser)
+{
+	if (g_strcmp0(gtk_file_chooser_get_filename(file_chooser),slirp->config.tftp_share)) {
+		if (slirp->config.tftp_share)
+			gtk_file_chooser_select_filename(file_chooser,slirp->config.tftp_share);
+		else gtk_file_chooser_unselect_all(file_chooser);
+	}
+}
+
 static void gn_vde_slirp_widget_set_node(GNVDESlirpWidget *self, GNVDESlirp *node)
 {
 	self->node = node;
@@ -54,6 +67,7 @@ static void gn_vde_slirp_widget_set_node(GNVDESlirpWidget *self, GNVDESlirp *nod
 	// Connect signals 
 	g_signal_connect(node,"notify::config",G_CALLBACK(gn_vde_slirp_widget_need_reboot_changed),self->need_reboot_infobar);
 	g_signal_connect(node,"notify::current-config",G_CALLBACK(gn_vde_slirp_widget_need_reboot_changed),self->need_reboot_infobar);
+	g_signal_connect(node,"notify::tftp-share",G_CALLBACK(gn_vde_slirp_widget_tftp_share_changed),self->tftp_share_button);
 	
 	// Preshot update signals
 	gn_vde_slirp_widget_need_reboot_changed(node,NULL,self->need_reboot_infobar);
@@ -96,4 +110,5 @@ static void gn_vde_slirp_widget_class_init(GNVDESlirpWidgetClass *klass)
 	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,need_reboot_infobar);
 	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,dns_entry);
 	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,dhcp_checkbox);
+	gtk_widget_class_bind_template_child(widget_class,GNVDESlirpWidget,tftp_share_button);
 }

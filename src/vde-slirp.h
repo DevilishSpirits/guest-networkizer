@@ -8,6 +8,7 @@ G_DECLARE_FINAL_TYPE(GNVDESlirp,gn_vde_slirp,GN,VDE_SLIRP,GNNode)
 typedef struct _GNVDESlirpConfig {
 	GInetAddress *dns_server;
 	bool enable_dhcp;
+	char* tftp_share;
 } GNVDESlirpConfig;
 void gn_vde_slirp_config_set_defaults(GNVDESlirpConfig* config);
 gboolean gn_vde_slirp_config_equal(const GNVDESlirpConfig* a, const GNVDESlirpConfig* b);
@@ -31,6 +32,7 @@ struct _GNVDESlirp {
 
 // Return TRUE if we need to reboot to take changes in account
 gboolean gn_vde_slirp_set_dns_address(GNVDESlirp *slirp, const char* address);
+void gn_vde_slirp_set_tftp_share(GNVDESlirp *slirp, const char* path);
 gboolean gn_vde_slirp_need_reboot(const GNVDESlirp* slirp);
 
 #define GN_TYPE_VDE_SLIRP_WIDGET gn_vde_slirp_widget_get_type()
@@ -46,6 +48,7 @@ struct _GNVDESlirpWidget {
 	
 	GtkEntry *dns_entry;
 	GtkToggleButton *dhcp_checkbox;
+	GtkFileChooser *tftp_share_button;
 };
 
 G_END_DECLS
