@@ -296,4 +296,5 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	nodeclass->file_properties = g_ptr_array_copy(nodeclass->file_properties,(GCopyFunc)g_param_spec_ref,NULL);
 	g_ptr_array_add(nodeclass->file_properties,g_param_spec_ref(obj_properties[PROP_DNS_ADDRESS]));
 	g_ptr_array_add(nodeclass->file_properties,g_param_spec_ref(obj_properties[PROP_ENABLE_DHCP]));
+	g_ptr_array_add(nodeclass->file_properties,g_param_spec_ref(obj_properties[PROP_TFTP_SHARE]));
 }

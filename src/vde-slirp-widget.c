@@ -71,6 +71,7 @@ static void gn_vde_slirp_widget_set_node(GNVDESlirpWidget *self, GNVDESlirp *nod
 	
 	// Preshot update signals
 	gn_vde_slirp_widget_need_reboot_changed(node,NULL,self->need_reboot_infobar);
+	gn_vde_slirp_widget_tftp_share_changed(node,NULL,self->tftp_share_button);
 }
 static void gn_vde_slirp_widget_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
