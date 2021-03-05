@@ -131,12 +131,9 @@ static void gn_vde_slirp_get_property(GObject *object, guint property_id, GValue
 	}
 }
 
-static const char *gn_vde_slirp_port_get_name(GNPort *port)
+static char *gn_vde_slirp_port_get_name(GNPort *port)
 {
-	GNVDESlirpPort *self = GN_VDE_SLIRP_PORT(port);
-	if (!self->name)
-		self->name = g_strdup("LAN");
-	return self->name;
+	return g_strdup("LAN");
 }
 
 static void gn_vde_slirp_port_init(GNVDESlirpPort *self)
@@ -170,7 +167,7 @@ static gboolean gn_vde_slirp_start(GNNode *node, GError **error)
 	GPtrArray *argv = g_ptr_array_sized_new(4);
 	for (int i = 0; i < sizeof(base_argv)/sizeof(base_argv[0]); i++)
 		g_ptr_array_add(argv,base_argv[i]);
-	g_ptr_array_add(argv,gn_port_get_hub_sock(self->port));
+	g_ptr_array_add(argv,(char*)gn_port_get_hub_sock(self->port));
 	
 	g_ptr_array_add(argv,option_dns);
 	char* dns_address = g_inet_address_to_string(self->current_config.dns_server);
@@ -186,7 +183,7 @@ static gboolean gn_vde_slirp_start(GNNode *node, GError **error)
 	
 	// Start
 	g_ptr_array_add(argv,NULL);
-	self->slirp_process = g_subprocess_newv(argv->pdata,0,error);
+	self->slirp_process = g_subprocess_newv((const gchar* const*)argv->pdata,0,error);
 	
 	// Cleanup
 	g_free(dns_address);
@@ -241,7 +238,7 @@ static void gn_vde_slirp_render(GNNode* node, cairo_t *cr)
 static void gn_vde_slirp_init(GNVDESlirp *self)
 {
 	self->ports = g_list_store_new(GN_TYPE_PORT);
-	self->port = GN_VDE_SLIRP_PORT(g_object_new(gn_vde_slirp_port_get_type(),"node",self,NULL));
+	self->port = GN_PORT(g_object_new(gn_vde_slirp_port_get_type(),"node",self,NULL));
 	g_list_store_append(self->ports,self->port);
 	g_object_unref(self->port);
 	gn_vde_slirp_config_set_defaults(&self->config);
@@ -264,7 +261,7 @@ static void gn_vde_slirp_finalize(GObject *gobject)
 
 static GListModel *gn_vde_slirp_query_portlist_model(GNNode* node)
 {
-	return GN_VDE_SLIRP(node)->ports;
+	return G_LIST_MODEL(GN_VDE_SLIRP(node)->ports);
 }
 static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 {
