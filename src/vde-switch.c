@@ -1,4 +1,5 @@
 #include "vde-switch.h"
+#include <glib-unix.h>
 
 G_DECLARE_FINAL_TYPE(GNVDESwitchPort,gn_vde_switch_port,GN,VDE_SWITCH_PORT,GNPort)
 struct _GNVDESwitchPort {
@@ -10,12 +11,10 @@ struct _GNVDESwitchPort {
 	char *name;
 };
 G_DEFINE_TYPE (GNVDESwitchPort,gn_vde_switch_port,GN_TYPE_PORT)
-static const char *gn_vde_switch_get_name(GNPort *port)
+static char *gn_vde_switch_get_name(GNPort *port)
 {
 	GNVDESwitchPort *self = GN_VDE_SWITCH_PORT(port);
-	if (!self->name)
-		self->name = g_strdup_printf("Port %d",self->port_no+1);
-	return self->name;
+	return g_strdup_printf("Port %d",self->port_no+1);
 }
 static void gn_vde_switch_port_init(GNVDESwitchPort *self)
 {
@@ -48,7 +47,7 @@ static void gn_vde_switch_init(GNVDESwitch *self)
 		g_unix_open_pipe(fds_r2b,0,NULL);
 		g_unix_open_pipe(fds_b2r,0,NULL);
 		port->real_side_plug = gn_mk_plug_no(self->sock_path,i+1,fds_b2r[0],fds_r2b[1],NULL);
-		port->buff_side_plug = gn_port_do_plug(port,fds_r2b[0],fds_b2r[1],NULL);
+		port->buff_side_plug = gn_port_do_plug(GN_PORT(port),fds_r2b[0],fds_b2r[1],NULL);
 		close(fds_r2b[0]);
 		close(fds_r2b[1]);
 		close(fds_b2r[0]);
@@ -99,7 +98,7 @@ static void gn_vde_switch_render(GNNode* node, cairo_t *cr)
 }
 static GListModel *gn_vde_switch_query_portlist_model(GNNode* node)
 {
-	return GN_VDE_SWITCH(node)->ports;
+	return G_LIST_MODEL(GN_VDE_SWITCH(node)->ports);
 }
 static void gn_vde_switch_class_init(GNVDESwitchClass *klass)
 {
