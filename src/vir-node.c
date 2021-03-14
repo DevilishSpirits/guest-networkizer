@@ -1,4 +1,5 @@
 #include "vir-node.h"
+#include "gn-net.h"
 
 G_DEFINE_TYPE (GNVirNodePort,gn_vir_node_port,GN_TYPE_PORT)
 
@@ -102,8 +103,9 @@ static gboolean gn_vir_node_perform_qemu(GNVirNodePort *self, const char* cmd, c
 	return TRUE;
 }
 
-static gboolean gn_vir_node_port_qemu_set_carrier(GNVirNodePort *self, gboolean active, GError** error)
+static gboolean gn_vir_node_port_qemu_set_carrier(GNPort *port, gboolean active, GError** error)
 {
+	GNVirNodePort *self = GN_VIR_NODE_PORT(port);
 	switch (gn_vir_node_get_state(gn_port_get_node(GN_PORT(self)))) {
 		case GVIR_DOMAIN_STATE_CRASHED:
 		case GVIR_DOMAIN_STATE_SHUTOFF:
@@ -144,11 +146,10 @@ static gboolean gn_vir_node_port_qemu_init(GNVirNodePort *self, GError** error)
 	if (gn_port_get_link(port))
 		return TRUE; // Already has link
 	// Remove carrier - TODO Do that in a atomic way
-	return gn_vir_node_port_qemu_set_carrier(self,FALSE,error);
+	return gn_vir_node_port_qemu_set_carrier(port,FALSE,error);
 }
 static gboolean gn_vir_node_port_qemu_clean(GNVirNodePort *self, GError** error)
 {
-	GNPort *port = GN_PORT(self);
 	char* cmd;
 	gboolean result;
 	// Create netdev
@@ -309,7 +310,6 @@ static void gn_vir_node_set_property(GObject *object, guint property_id, const G
 
 static void gn_vir_node_render(GNNode* node, cairo_t *cr)
 {
-	GNVirNode *self = GN_VIR_NODE(node);
 	// Get real pixel size
 	double picx = 1;
 	double picy = 0;
@@ -400,7 +400,7 @@ static GVirDomainState gn_vir_node_get_state(GNNode *node)
 
 static GListModel *gn_vir_node_query_portlist_model(GNNode* node)
 {
-	return GN_VIR_NODE(node)->ports;
+	return G_LIST_MODEL(GN_VIR_NODE(node)->ports);
 }
 
 
@@ -441,7 +441,6 @@ static gboolean gn_vir_node_file_save(GNNode *node, struct gn_net_save_context* 
 
 static void gn_vir_node_constructed(GObject *gobject)
 {
-	GNVirNode *self = GN_VIR_NODE(gobject);
 	G_OBJECT_CLASS(gn_vir_node_parent_class)->constructed(gobject);
 }
 
