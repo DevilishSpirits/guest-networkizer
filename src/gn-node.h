@@ -30,8 +30,10 @@ struct _GNNodeClass {
 	
 	// Start the node
 	gboolean (*start)(GNNode *node, GError **err);
-	// Stop the node
+	// Stop the node, default to force_stop
 	gboolean (*stop)(GNNode *node, GError **err);
+	// Force stop the node
+	gboolean (*force_stop)(GNNode *node, GError **err);
 	// Query current state. By default return GVIR_DOMAIN_STATE_NONE that mean N/A
 	GVirDomainState (*get_state)(GNNode *node);
 	// Render a node, (1×1 rectangle with center at 0×0)

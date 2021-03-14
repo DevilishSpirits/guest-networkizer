@@ -99,7 +99,7 @@ void gn_node_panel_set_node(GNNodePanel *panel, GNNode *node)
 	panel->node_class = GN_NODE_GET_CLASS(node);
 	
 	// Set the UI
-	if (panel->node_class->start || panel->node_class->stop) {
+	if (panel->node_class->start) {
 		gtk_widget_set_visible(GTK_WIDGET(panel->onoff_switch),TRUE);
 		g_object_bind_property_full(node,"state",panel->onoff_switch,"active",G_BINDING_SYNC_CREATE|G_BINDING_BIDIRECTIONAL,
 			gn_node_panel_onoff_switch_active_from_state,gn_node_panel_onoff_switch_active_to_state,NULL,NULL);

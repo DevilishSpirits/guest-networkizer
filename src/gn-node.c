@@ -127,9 +127,10 @@ gboolean gn_node_set_state(GNNode* node, GVirDomainState state, GError **error)
 		case GVIR_DOMAIN_STATE_BLOCKED:
 		switch (state) {
 			// TODO case GVIR_DOMAIN_STATE_PAUSED
-			case GVIR_DOMAIN_STATE_SHUTOFF: // TODO Cleanly stop the node
-			case GVIR_DOMAIN_STATE_CRASHED:
+			case GVIR_DOMAIN_STATE_SHUTOFF:
 				return node_class->stop(node,error);
+			case GVIR_DOMAIN_STATE_CRASHED:
+				return node_class->force_stop(node,error);
 			// TODO case GVIR_DOMAIN_STATE_PMSUSPENDED
 			default:return TRUE;
 		} break;
@@ -141,7 +142,7 @@ gboolean gn_node_set_state(GNNode* node, GVirDomainState state, GError **error)
 			case GVIR_DOMAIN_STATE_PAUSED: //TODO
 				return TRUE;
 			case GVIR_DOMAIN_STATE_CRASHED:
-				return node_class->stop(node,error);
+				return node_class->force_stop(node,error);
 		} break;
 		case GVIR_DOMAIN_STATE_SHUTOFF:
 		case GVIR_DOMAIN_STATE_CRASHED:
@@ -193,6 +194,11 @@ static void gn_node_default_render(GNNode* node, cairo_t *cr)
 	cairo_fill(cr);
 }
 
+static gboolean gn_node_default_stop(GNNode *node, GError **err)
+{
+	return GN_NODE_GET_CLASS(node)->force_stop(node,err);
+}
+
 static void gn_node_class_init(GNNodeClass *klass)
 {
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
@@ -200,6 +206,7 @@ static void gn_node_class_init(GNNodeClass *klass)
 	klass->query_tooltip = gtk_false;
 	klass->get_label = gn_node_default_get_label;
 	klass->get_state = gn_node_default_get_state;
+	klass->stop = gn_node_default_stop;
 	klass->render = gn_node_default_render;
 	klass->file_load_parser.start_element = (void(*)(GMarkupParseContext*,const gchar*,const gchar**,const gchar**,gpointer,GError**))gn_net_load_skip_parser_push;
 		klass->file_load_parser.end_element = (void(*)(GMarkupParseContext*,const gchar*,void*,GError**))g_markup_parse_context_pop;

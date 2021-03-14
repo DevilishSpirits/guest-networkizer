@@ -270,7 +270,7 @@ static void gn_vde_slirp_class_init(GNVDESlirpClass *klass)
 	
 	nodeclass->get_label = gn_vde_slirp_get_label;
 	nodeclass->start = gn_vde_slirp_start;
-	nodeclass->stop = gn_vde_slirp_stop;
+	nodeclass->force_stop = gn_vde_slirp_stop;
 	nodeclass->get_state = gn_vde_slirp_get_state;
 	nodeclass->render = gn_vde_slirp_render;
 	nodeclass->query_portlist_model = gn_vde_slirp_query_portlist_model;

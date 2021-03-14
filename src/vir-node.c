@@ -377,6 +377,11 @@ static gboolean gn_vir_node_start(GNNode *node, GError **err)
 static gboolean gn_vir_node_stop(GNNode *node, GError **err)
 {
 	GNVirNode *self = GN_VIR_NODE(node);
+	return gvir_domain_shutdown(self->domain,0,err);
+}
+static gboolean gn_vir_node_force_stop(GNNode *node, GError **err)
+{
+	GNVirNode *self = GN_VIR_NODE(node);
 	return gvir_domain_stop(self->domain,0,err);
 }
 static const char* gn_vir_node_get_label(GNNode *node)
@@ -462,6 +467,7 @@ static void gn_vir_node_class_init(GNVirNodeClass *klass)
 	node_class->query_portlist_model = gn_vir_node_query_portlist_model;
 	node_class->start = gn_vir_node_start;
 	node_class->stop = gn_vir_node_stop;
+	node_class->force_stop = gn_vir_node_force_stop;
 	node_class->render = gn_vir_node_render;
 	node_class->get_label = gn_vir_node_get_label;
 	node_class->get_state = gn_vir_node_get_state;
