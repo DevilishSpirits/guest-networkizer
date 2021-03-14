@@ -29,16 +29,20 @@ static gboolean gn_node_panel_onoff_switch_active_to_state(GBinding *binding, co
 	if (g_value_get_boolean(from_value))
 		g_value_set_enum(to_value,GVIR_DOMAIN_STATE_RUNNING);
 	else g_value_set_enum(to_value,GVIR_DOMAIN_STATE_SHUTOFF);
+	return TRUE;
 }
 static gboolean gn_node_panel_onoff_switch_active_from_state(GBinding *binding, const GValue *from_value, GValue *to_value, gpointer user_data)
 {
 	switch (g_value_get_enum(from_value)) {
-		case GVIR_DOMAIN_STATE_RUNNING:case GVIR_DOMAIN_STATE_BLOCKED :
-			g_value_set_boolean(to_value,TRUE);break; 
+		case GVIR_DOMAIN_STATE_RUNNING:case GVIR_DOMAIN_STATE_BLOCKED: {
+			g_value_set_boolean(to_value,TRUE);
+		} return TRUE;
 		
-		default:
-			g_value_set_boolean(to_value,FALSE);break; 
+		default: {
+			g_value_set_boolean(to_value,FALSE);
+		} return TRUE;
 	}
+	
 }
 
 G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *self)
@@ -63,11 +67,12 @@ G_MODULE_EXPORT void gn_node_panel_restore(GtkWidget *self)
 	// Popdown parent
 	gtk_popover_popdown(GTK_POPOVER(parent));
 }
-G_MODULE_EXPORT gboolean gn_node_panel_wireshark(GtkWidget *button, GNNodePanel *self)
+G_MODULE_EXPORT void gn_node_panel_wireshark(GtkWidget *button, GNNodePanel *self)
 {
 	 const char *argv[] = {"sh","-c","for i in $(ip l | grep -E '^[0-9]:' | cut -f2 -d':'); do ip l set $i up; done && exec wireshark",NULL};
 	GSubprocess *subprocess = gn_vde_ns_subprocess_node(self->node,argv,0,NULL/* TODO GError **error */);
 	g_object_unref(subprocess);
+	
 }
 
 static gboolean gn_node_panel_node_destroyed_do(gpointer data)
@@ -149,13 +154,14 @@ static void gn_node_panel_init(GNNodePanel *self)
 		gtk_widget_destroy(self->wireshark_button);
 	}
 }
-static void gn_node_panel_dispose(GNNodePanel *self)
+static void gn_node_panel_dispose(GObject *gobject)
 {
+	GNNodePanel *self = GN_NODE_PANEL(gobject);
 	if (self->node) {
-		g_object_weak_unref(G_OBJECT(self->node),gn_node_panel_node_destroyed,self);
+		g_object_weak_unref(gobject,gn_node_panel_node_destroyed,self);
 		self->node = NULL;
 	}
-	G_OBJECT_CLASS(gn_node_panel_parent_class)->dispose(self);
+	G_OBJECT_CLASS(gn_node_panel_parent_class)->dispose(gobject);
 }
 static void gn_node_panel_class_init(GNNodePanelClass *klass)
 {
