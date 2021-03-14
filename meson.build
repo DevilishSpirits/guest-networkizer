@@ -35,10 +35,12 @@ deps = [
 	dep_virtqemu,
 ]
 
-executable('guest-networkizer', srcs, 'src/main.c', export_dynamic: true, install: true, dependencies: deps)
-
 # Static library to avoid rebuilding full source for each tests
-test_lib = static_library('test_lib', srcs, 'tests/main.c', install: false, dependencies: deps, include_directories: include_directories('src'), build_by_default: false)
+exe_lib = static_library('guest-networkizer-lib', srcs, install: false, dependencies: deps)
+
+executable('guest-networkizer', 'src/main.c', export_dynamic: true, install: true, link_whole: exe_lib, dependencies: deps)
+
+test_lib = static_library('test_lib', 'tests/main.c', link_whole: exe_lib, install: false, dependencies: deps, include_directories: include_directories('src'), build_by_default: false)
 
 test_dep = declare_dependency(link_whole: test_lib, dependencies: deps, include_directories: include_directories('src'))
 
