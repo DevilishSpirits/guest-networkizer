@@ -56,7 +56,7 @@ gboolean gn_net_save_context_dump_object_properties(struct gn_net_save_context* 
 				value_string = g_strdup_printf("%d",g_value_get_int(&value));
 				g_value_unset(&value);
 				g_value_init(&value,G_TYPE_STRING);
-				g_value_take_string(&value,value_string);
+				g_value_take_string(&value,(char*)value_string);
 				value_string_len = strlen(value_string);
 			} break;
 			case G_TYPE_STRING: {
