@@ -63,11 +63,11 @@ G_MODULE_EXPORT void gn_main_window_open(GNMainWindow *self)
 		g_object_unref(file);
 		// Signal error if there one
 		if (error) {
-			GtkWidget *err_dialog = gtk_message_dialog_new(self,GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Open failed");
+			GtkWidget *err_dialog = gtk_message_dialog_new(GTK_WINDOW(self),GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Open failed");
 			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(err_dialog),"%s",error->message);
 			g_signal_connect(err_dialog,"response",G_CALLBACK(gtk_widget_hide),NULL);
 			g_error_free(error);
-			gtk_dialog_run(err_dialog);
+			gtk_dialog_run(GTK_DIALOG(err_dialog));
 		}
 	}
 	g_object_unref(dialog);
@@ -100,7 +100,7 @@ G_MODULE_EXPORT void gn_main_window_virt_listbox_row_activated(GtkListBox *box, 
 	gn_main_window_reset_new_object(self);
 	static const char* domain_property = "domain";
 	g_ptr_array_set_size(self->new_node_properties_names,2);
-	self->new_node_properties_names->pdata[1] = domain_property;
+	self->new_node_properties_names->pdata[1] = (char*)domain_property;
 	GValue domain_value = G_VALUE_INIT;
 	g_value_init(&domain_value,GVIR_TYPE_DOMAIN);
 	g_value_set_object(&domain_value,g_object_get_data(G_OBJECT(row),"vir-domain"));
@@ -183,7 +183,7 @@ G_MODULE_EXPORT gboolean gn_main_window_mouse_motion(GtkWidget *widget, GdkEvent
 	const double workspace_x = WORKSPACE_MOUSE(x);
 	const double workspace_y = WORKSPACE_MOUSE(y);
 	
-	char* cursor_name = NULL;
+	const char* cursor_name = NULL;
 	const char* cursor_link = "alias";
 	const char* cursor_grabbing = "grabbing";
 	const char* cursor_no_drop = "no-drop";
@@ -200,6 +200,7 @@ G_MODULE_EXPORT gboolean gn_main_window_mouse_motion(GtkWidget *widget, GdkEvent
 			cursor_name = target_is_source ? cursor_grabbing : cursor_no_drop;
 		}
 	} else switch (self->grab_object_type) {
+		case GN_NET_NONE:break; // Nothing to do
 		case GN_NET_NODE: {
 			switch (self->new_node_type) {
 				case GN_WINDOW_MODE_LINK: {
@@ -223,6 +224,12 @@ G_MODULE_EXPORT gboolean gn_main_window_mouse_motion(GtkWidget *widget, GdkEvent
 					}
 				} break;
 			}
+		} break;
+		case GN_NET_LINK: {
+			g_critical("In gn_main_window_mouse_motion(), unimplemented self->grab_object_type == GN_NET_LINK");
+		} break;
+		default: {
+			g_critical("In gn_main_window_mouse_motion(), invalid self->grab_object_type == %d",self->grab_object_type);
 		} break;
 	}
 	
@@ -268,11 +275,15 @@ G_MODULE_EXPORT gboolean gn_main_window_button_release(GtkWidget *widget, GdkEve
 		case GN_WINDOW_MODE_DELETE: {
 			if (self->grab_object.node == target_object.node)
 				switch (target_object_type) {
+					case GN_NET_NONE:break; // Nothing to do
 					case GN_NET_NODE: {
 						g_ptr_array_remove_fast(self->net->nodes,target_object.node);
 					} break;
 					case GN_NET_LINK: {
 						gn_port_set_link(target_object.link->port_a,NULL,NULL);
+					} break;
+					default: {
+						g_critical("In gn_main_window_mouse_motion(), invalid target_object_type = %d",target_object_type);
 					} break;
 				}
 		} break;
@@ -308,7 +319,6 @@ G_MODULE_EXPORT void gn_main_window_draw_area(GtkWidget *widget, cairo_t *cr, GN
 
 static void gn_main_window_dispose(GObject *gobject)
 {
-	GNMainWindow *self = GN_MAIN_WINDOW(gobject);
 	G_OBJECT_CLASS(gn_main_window_parent_class)->dispose(gobject);
 }
 
