@@ -1,5 +1,7 @@
 #include "gn-node.h"
 #include "gn-net.h"
+#include <glib/gstdio.h>
+#include <glib-unix.h>
 
 typedef struct _GNPortPrivate {
 	GNPort *link;
@@ -19,10 +21,9 @@ enum {
 };
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL,};
 
-static const char* gn_port_default_get_name(GNPort* port)
+static char* gn_port_default_get_name(GNPort* port)
 {
-	static const char* default_name = "Unamed";
-	return default_name;
+	return g_strdup("Unamed");
 }
 
 const char* gn_port_get_hub_sock(GNPort* port)
@@ -32,7 +33,6 @@ const char* gn_port_get_hub_sock(GNPort* port)
 }
 static void gn_port_init(GNPort *self)
 {
-	GNPortPrivate *priv = gn_port_get_instance_private(self);
 }
 
 static void gn_port_dispose(GObject *gobject)
@@ -65,7 +65,7 @@ static void gn_port_set_property(GObject *object, guint property_id, const GValu
 		case PROP_NODE: {
 			priv->node = GN_NODE(g_value_get_object(value));
 			// Create hub
-			priv->hub_sock = gn_node_mkdtemp(priv->node,"port",/* TODO GError **error */NULL);
+			priv->hub_sock = (char*)gn_node_mkdtemp(priv->node,"port",/* TODO GError **error */NULL);
 			priv->hub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDIN_PIPE,/* TODO GError **error */NULL,"vde_switch","-x","-s",priv->hub_sock,NULL);
 		} break;
 		case PROP_LINK: {
@@ -96,7 +96,7 @@ static void gn_port_class_init(GNPortClass *klass)
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
 	klass->get_name = gn_port_default_get_name;
-	klass->set_carrier = (gboolean(*)(GNPort*,GNPort*,gboolean,GError**))gtk_true;
+	klass->set_carrier = (gboolean(*)(GNPort*,gboolean,GError**))gtk_true;
 	objclass->get_property = gn_port_get_property;
 	objclass->set_property = gn_port_set_property;
 	objclass->dispose = gn_port_dispose;
@@ -139,7 +139,6 @@ gboolean gn_port_set_link(GNPort* port, GNPort *new_link, GError **error)
 	GNPortPrivate *new_priv = new_link ? gn_port_get_instance_private(new_link) : NULL;
 	GNPortClass   *old_class = old_link ? GN_PORT_GET_CLASS(old_link) : NULL;
 	GNPortClass   *new_class = new_link ? GN_PORT_GET_CLASS(new_link) : NULL;
-	GNPort        *new_link_old = new_priv ? new_priv->link : NULL;
 	GArray        *net_link = gn_node_get_net(priv->node)->links;
 	
 	// Update links
@@ -227,5 +226,5 @@ GSubprocess* gn_mk_plug_no(const char* hub_sock, int port_no, int his_rx, int hi
 }
 GSubprocess* gn_port_do_plug(GNPort* port, int his_rx, int his_tx, GError **error)
 {
-	gn_mk_plug(gn_port_get_hub_sock(port),his_rx,his_tx,error);
+	return gn_mk_plug(gn_port_get_hub_sock(port),his_rx,his_tx,error);
 }
