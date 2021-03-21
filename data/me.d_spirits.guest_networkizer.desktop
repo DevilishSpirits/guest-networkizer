@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Exec=guest-networkizer
+Name=Guest-networkizer
+GenericName=Virtual network builder
+GenericName[fr]=Concepteur de réseau virtuel
+Keywords=network
+StartupNotify=true

@@ -56,3 +56,5 @@ foreach test_unit: basic_tests
 	test(test_unit, test_prog, env: test_env, protocol: 'tap')
 endforeach
 
+# Data files
+install_data('data/me.d_spirits.guest_networkizer.desktop',install_dir: get_option('datadir')/'applications')
