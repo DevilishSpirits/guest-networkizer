@@ -155,6 +155,7 @@ gboolean gn_node_set_state(GNNode* node, GVirDomainState state, GError **error)
 		//case GVIR_DOMAIN_STATE_PMSUSPENDED
 		default:return TRUE;break;
 	}
+	return TRUE; // Just in doubt
 }
 
 static void gn_node_init(GNNode *self)
@@ -178,7 +179,7 @@ static void gn_node_finalize(GObject *gobject)
 	G_OBJECT_CLASS(gn_node_parent_class)->finalize(gobject);
 }
 
-static GVirDomainState gn_node_default_get_state(GNNode* node, char* text)
+static GVirDomainState gn_node_default_get_state(GNNode* node)
 {
 	return GVIR_DOMAIN_STATE_NONE;
 }
@@ -203,7 +204,7 @@ static void gn_node_class_init(GNNodeClass *klass)
 {
 	GObjectClass* objclass = G_OBJECT_CLASS(klass);
 	
-	klass->query_tooltip = gtk_false;
+	klass->query_tooltip = (gboolean(*)(GNNode*,int,int,gboolean,GtkTooltip*,GtkWidget*))gtk_false;
 	klass->get_label = gn_node_default_get_label;
 	klass->get_state = gn_node_default_get_state;
 	klass->stop = gn_node_default_stop;
