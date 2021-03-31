@@ -84,6 +84,10 @@ G_MODULE_EXPORT void gn_vir_node_widget_open_display(GNVirNodeWidget *self)
 	// FIXME Don't hardcore socket path
 	char *argv[] = {"virt-manager","-c","qemu:///session","--show-domain-console",(char*)gvir_domain_get_uuid(self->node->domain),NULL};
 	g_spawn_async(NULL,argv,NULL,G_SPAWN_SEARCH_PATH_FROM_ENVP,NULL,NULL,NULL,NULL);
+	// If in a popover, popdown
+	GtkWidget *toplevel_widget = gtk_widget_get_parent(gtk_widget_get_parent(GTK_WIDGET(self)));
+	if (g_type_is_a(G_TYPE_FROM_INSTANCE(toplevel_widget),GTK_TYPE_POPOVER))
+		gtk_popover_popdown(GTK_POPOVER(toplevel_widget));
 }
 static void gn_vir_node_widget_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
