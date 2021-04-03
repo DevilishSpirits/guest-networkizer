@@ -249,6 +249,7 @@ This allow real-world access by creating a subnetwork like a FAI box.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
+                <property name="tooltip-markup" translatable="yes">&lt;b&gt;Link nodes&lt;/b&gt;</property>
                 <property name="draw-indicator">False</property>
                 <property name="group">move_node_button</property>
                 <signal name="clicked" handler="gn_main_window_link_mode" swapped="no"/>
