@@ -239,7 +239,7 @@ void gn_vir_node_port_delete(GNVirNodePort *port)
 }
 void gn_vir_node_port_add(GNVirNode *self)
 {
-	GNVirNodePort *port = g_object_new(gn_vir_node_port_get_type(),"node",self,NULL);
+	GNVirNodePort *port = g_object_new(GN_TYPE_VIR_NODE_PORT,"node",self,NULL);
 	g_signal_connect_object(self->domain,"started",G_CALLBACK(gn_vir_node_port_qemu_started),port,0);
 	gn_vir_node_port_qemu_init(port,NULL);
 	g_list_store_append(self->ports,port);
@@ -346,7 +346,7 @@ static void gn_vir_node_get_property(GObject *object, guint property_id, GValue 
 
 static void gn_vir_node_init(GNVirNode *self)
 {
-	self->ports = g_list_store_new(GN_TYPE_PORT);
+	self->ports = g_list_store_new(GN_TYPE_VIR_NODE_PORT);
 }
 static void gn_vir_node_screenshot_ready(GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
@@ -416,7 +416,7 @@ static void gn_vir_node_file_load_start_element(GMarkupParseContext *context, co
 		 G_MARKUP_COLLECT_STRING,"device",&device_str,
 		 G_MARKUP_COLLECT_INVALID)) {
 			// FIXME This is bad code duplication
-			GNVirNodePort *port = g_object_new(gn_vir_node_port_get_type(),"node",self,"mac-address",mac_str,"device",device_str,NULL);
+			GNVirNodePort *port = g_object_new(GN_TYPE_VIR_NODE_PORT,"node",self,"mac-address",mac_str,"device",device_str,NULL);
 			g_signal_connect_object(self->domain,"started",G_CALLBACK(gn_vir_node_port_qemu_started),port,0);
 			gn_vir_node_port_qemu_init(port,NULL);
 			g_list_store_append(self->ports,port);

@@ -16,6 +16,7 @@ struct _GNVirNode {
 	GListStore *ports;
 };
 
+#define GN_TYPE_VIR_NODE_PORT gn_vir_node_port_get_type()
 G_DECLARE_FINAL_TYPE(GNVirNodePort,gn_vir_node_port,GN,VIR_NODE_PORT,GNPort)
 struct _GNVirNodePort {
 	GNPort parent_instance;
