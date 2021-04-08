@@ -136,7 +136,11 @@ static void gn_net_load_main_start_element(GMarkupParseContext *context, const g
 			if (port_a_index >= g_list_model_get_n_items(node_a_ports)) return;
 			if (port_b_index >= g_list_model_get_n_items(node_b_ports)) return;
 			
-			gn_port_set_link(GN_PORT(g_list_model_get_item(node_a_ports,port_a_index)),GN_PORT(g_list_model_get_item(node_b_ports,port_b_index)),error);
+			GNPort *port_a = GN_PORT(g_list_model_get_item(node_a_ports,port_a_index));
+			GNPort *port_b = GN_PORT(g_list_model_get_item(node_b_ports,port_b_index));
+			gn_port_set_link(port_a,port_b,error);
+			g_object_unref(port_a);
+			g_object_unref(port_b);
 		}
 	} // TODO else skip this tag
 }
