@@ -1,5 +1,6 @@
 #include "gn-main-window.h"
 #include "gn-node-panel.h"
+#include "vde-plug-url.h"
 #include "vde-slirp.h"
 #include "vde-switch.h"
 #include "vir-node.h"
@@ -129,6 +130,14 @@ G_MODULE_EXPORT void gn_main_window_add_nat(GtkToggleButton *toggle_button, GNMa
 		g_array_set_size(self->new_node_properties_values,1);
 		self->new_node_type = GN_TYPE_VDE_SLIRP;
 	} else if (self->new_node_type == GN_TYPE_VDE_SLIRP)
+		gn_main_window_reset_new_object(self);
+}
+G_MODULE_EXPORT void gn_main_window_add_plug_url(GtkToggleButton *toggle_button, GNMainWindow *self)
+{
+	if (gtk_toggle_button_get_active(toggle_button)) {
+		g_array_set_size(self->new_node_properties_values,1);
+		self->new_node_type = GN_TYPE_VDE_PLUG_URL;
+	} else if (self->new_node_type == GN_TYPE_VDE_PLUG_URL)
 		gn_main_window_reset_new_object(self);
 }
 

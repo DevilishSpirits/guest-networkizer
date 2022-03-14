@@ -19,6 +19,8 @@ srcs = [
 	'src/gn-node-panel.c',
 	'src/gn-ports.c',
 	'src/vde-ns.c',
+	'src/vde-plug-url.c',
+	'src/vde-plug-url-widget.c',
 	'src/vde-slirp.c',
 	'src/vde-slirp-widget.c',
 	'src/vde-switch.c',

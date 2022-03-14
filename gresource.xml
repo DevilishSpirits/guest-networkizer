@@ -4,6 +4,7 @@
 		<!-- GtkBuilder UI files -->
 		<file preprocess="xml-stripblanks">ui/GNMainWindow</file>
 		<file preprocess="xml-stripblanks">ui/GNNodePanel</file>
+		<file preprocess="xml-stripblanks">ui/GNVDEPlugURLWidget</file>
 		<file preprocess="xml-stripblanks">ui/GNVDESlirpWidget</file>
 		<file preprocess="xml-stripblanks">ui/GNVirNodeWidget</file>
 		<!-- Images -->
